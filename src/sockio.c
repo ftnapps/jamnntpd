@@ -105,9 +105,9 @@ void socksendtext(struct var *var,uchar *buf)
 
    if(send(var->sio->socket,buf,strlen(buf),0) == -1)
    {
-      uchar err[100];
+      uchar err[200];
 
-      os_strerr(os_errno(),err,100);
+      os_strerr(os_errno(),err,200);
 
       os_logwrite("(%s) Socket error \"%s\" (%lu), disconnecting",var->clientid,err,os_errno());
       var->disconnect=TRUE;

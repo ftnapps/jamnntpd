@@ -70,8 +70,8 @@ struct var
 #define CRLF CR LF
 
 #define SERVER_NAME       "JamNNTPd/" PLATFORM_NAME
-#define SERVER_VERSION    "1.0b3"
-#define SERVER_PIDVERSION "1/b3"
+#define SERVER_VERSION    "1.0b4"
+#define SERVER_PIDVERSION "1/b4"
 
 #define SOCKIO_TIMEOUT 5*60
 
@@ -85,7 +85,6 @@ void server(SOCKET s);
 
 #define CFG_PORT           5000
 #define CFG_MAXCONN        5
-#define CFG_DEBUG          FALSE
 
 #define CFG_ALLOWFILE      CFG_BASEPATH "jamnntpd.allow"
 #define CFG_GROUPSFILE     CFG_BASEPATH "jamnntpd.groups"
@@ -108,6 +107,7 @@ extern uchar *cfg_xlatfile;
 extern uchar *cfg_origin;
 extern uchar *cfg_guestsuffix;
 extern uchar *cfg_echomailjam;
+extern uchar *cfg_echotosslog;
 
 extern bool cfg_debug;
 extern bool cfg_noxlat;
@@ -119,6 +119,8 @@ extern bool cfg_smartquote;
 extern bool cfg_noencode;
 extern bool cfg_notzutc;
 extern bool cfg_nocancel;
+extern bool cfg_strictnetmail;
+extern bool cfg_readorigin;
 
 extern bool cfg_def_flowed;
 extern bool cfg_def_showto;

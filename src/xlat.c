@@ -560,13 +560,13 @@ bool readxlat(struct var *var)
       }
    }
 
+   fclose(fp);
+
    if(!var->firstpostxlat)
    {
       os_logwrite("(%s) No charsets for posting configured",var->clientid);
       return(FALSE);
    }
-
-   fclose(fp);
 
    return(TRUE);
 }

@@ -1,5 +1,7 @@
 # type either "make linux" or "make win32" to compile
 
+MAKE = make
+
 help:
 	@echo You can use this Makefile in the following ways:
 	@echo make linux ............ Make Linux binaries
@@ -8,17 +10,17 @@ help:
 	@echo make cleanwin32 ....... Remove object files under Win32
 
 linux :
-	make -C jamlib -f Makefile.linux
-	make -f Makefile.linux
+	$(MAKE) -C jamlib -f Makefile.linux
+	$(MAKE) -f Makefile.linux
 
 win32 :
-	make -C jamlib -f Makefile.win32
-	make -f Makefile.win32
+	$(MAKE) -C jamlib -f Makefile.win32
+	$(MAKE) -f Makefile.win32
 
 cleanlinux :
-	make -C jamlib -f Makefile.linux clean
-	make -f Makefile.linux clean
+	$(MAKE) -C jamlib -f Makefile.linux clean
+	$(MAKE) -f Makefile.linux clean
 
 cleanwin32 :
-	make -C jamlib -f Makefile.win32 clean
-	make -f Makefile.win32 clean
+	$(MAKE) -C jamlib -f Makefile.win32 clean
+	$(MAKE) -f Makefile.win32 clean

@@ -13,12 +13,42 @@ int main(int argc, char **argv)
 
            /*          1         2         3         4         5         6         7         8 */
            /* 12345678901234567890123456789012345678901234567890123456789012345678901234567890 */     
-      printf("Usage: jamnntpd [-debug] [-noecholog] [-nostripre] [-notearline] [-nocancel]\n"
-             "                [-noreplyaddr] [-smartquote] [-noencode] [-notzutc] [-p <port>]\n"
-             "                [-m <maxconn>] [-def_flowed on/off] [-def_showto on/off]\n"
-             "                [-origin <origin>] [-guestsuffix <suffix>]\n"
-             "                [-echomailjam <echomail.jam> [-g <groupsfile>] [-a <allowfile>]\n"
-             "                [-u <usersfile>] [-x <xlatfile>] [-l <logfile>]\n");
+      printf("\n"
+             "Usage: jamnntpd [<options>]\n"
+             "\n"
+             " General options:\n"
+             "\n"
+             " -p <port>             Port number for JamNNTPd (default: 5000)\n"
+             " -m <maxcomm>          Maximum number of simultaneous connections (default: 5)\n"
+             " -g <groupsfile>       Read this file instead of " CFG_GROUPSFILE "\n"
+             " -a <allowfile>        Read this file instead of " CFG_ALLOWFILE "\n"
+             " -u <usersfile>        Read this file instead of " CFG_USERSFILE "\n"
+             " -x <xlatfile>         Read this file instead of " CFG_XLATFILE "\n"
+             " -l <logfile>          Write to this file instead of " CFG_LOGFILE "\n"
+             " -noecholog            Do not write log messages to console\n" 
+             " -debug                Write all network communication to console\n"
+             "\n"
+             " Options for displaying messages:\n"
+             "\n"
+             " -readorigin           Get addresses from the origin line instead of JAM header\n"
+             " -noencode             Do not MIME encode headers with 8-bit characters\n"
+             " -strictnetmail        Use strict article counters in netmail areas\n"
+             " -def_flowed on/off    Default setting for format=flowed (RFC 2646)\n"
+             " -def_showto on/off    Default setting for the display of recipient on from line\n"
+             "\n"
+             " Options for posting messages:\n"
+             "\n"
+             " -nostripre            Do not remove \"Re:\" from subject line\n"
+             " -notearline           Do not put X-Newsreader/User-Agent string on tearline\n"
+             " -noreplyaddr          Do not create REPLYADDR kludges\n"
+             " -notzutc              Do not create TZUTC kludges\n"
+             " -nocancel             Do not allow cancelling of messages\n"
+             " -smartquote           Reformat quoted text to fidonet style\n"
+             " -origin <origin>      Put this on the Origin line instead of Organization\n"
+             " -guestsuffix <suffix> Suffix added to from name of unauthenticated users\n"
+             " -echomailjam <file>   Create echomail.jam file for CrashMail and other tossers\n"
+             " -echotosslog <file>   Create echotoss log for hpt and other tossers\n"
+             "\n");
 
       exit(0);
    }
@@ -44,6 +74,14 @@ int main(int argc, char **argv)
       else if(stricmp(argv[c],"-nocancel")==0)
       {
          cfg_nocancel=TRUE;
+      }
+      else if(stricmp(argv[c],"-strictnetmail")==0)
+      {
+         cfg_strictnetmail=TRUE;
+      }
+      else if(stricmp(argv[c],"-readorigin")==0)
+      {
+         cfg_readorigin=TRUE;
       }
       else if(stricmp(argv[c],"-noreplyaddr")==0)
       {
@@ -143,6 +181,16 @@ int main(int argc, char **argv)
 
          cfg_echomailjam=argv[++c];
       }
+      else if(stricmp(argv[c],"-echotosslog")==0)
+      {
+         if(c+1 == argc)
+         {
+            printf("Missing argument for %s\n",argv[c]);
+            exit(0);
+         }
+
+         cfg_echotosslog=argv[++c];
+      }
       else if(stricmp(argv[c],"-g")==0)
       {
          if(c+1 == argc)
@@ -209,12 +257,10 @@ int main(int argc, char **argv)
 
    if(sock == INVALID_SOCKET)
    {
-      uchar err[100];
+      uchar err[200];
 
-      os_showerror("Could not create socket: %s",os_strerr(os_errno(),err,100));
-
+      os_showerror("Failed to create socket: %s",os_strerr(os_errno(),err,200));
       os_free();
-
       exit(10);
    }
 
@@ -228,10 +274,9 @@ int main(int argc, char **argv)
 
    if(error == SOCKET_ERROR)
    {
-      uchar err[100];
+      uchar err[200];
 
-		os_showerror("Error in bind: %s (Server already running?)",os_strerr(os_errno(),err,100));
-
+      os_showerror("Could not bind to port (server already running?): %s",os_strerr(os_errno(),err,200));
       close(sock);
       os_free();
 
@@ -242,13 +287,11 @@ int main(int argc, char **argv)
 
    if(error == SOCKET_ERROR)
    {
-      uchar err[100];
+      uchar err[200];
 
-		os_showerror("Error in listen: %s",os_strerr(os_errno(),err,100));
-
+      os_showerror("Could not listen to socket: %s",os_strerr(os_errno(),err,200));
       close(sock);
       os_free();
-
       exit(10);
    }
 
@@ -277,9 +320,8 @@ int main(int argc, char **argv)
 
           if(active_sock == SOCKET_ERROR)
           {
-              uchar err[100];
-
-				  os_showerror("accept() failed: %s\n",os_strerr(os_errno(),err,100));
+              uchar err[200];
+              os_showerror("Failed to accept incoming connection: %s",os_strerr(os_errno(),err,200));
               break;
           }
 

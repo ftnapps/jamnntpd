@@ -19,6 +19,9 @@
 # unless it contains wildcards. If the first realname contains wildcards or 
 # if no realnames are supplied, the from name is taken from the From: header 
 # line of the posted message.
+#
+# If you use non-ascii characters in the realname, they should be in the 
+# character set used on the NNTP side, most often iso-8859-1.
 
 billing  password        AX    AX "Johan Billing,Billing,Johan"
 palinuris vulgaris       AX    AX "Palle Kuling"

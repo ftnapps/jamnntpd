@@ -6,7 +6,7 @@
 typedef int bool;
 typedef unsigned char uchar;
 
-#ifndef PLATFORM_LINUX
+#ifndef linux
 typedef unsigned short ushort;
 typedef unsigned long ulong;
 #endif

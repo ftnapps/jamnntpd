@@ -1,9 +1,45 @@
+
 Changes in version 1.0
 
- - Added support for netmail
+ - Added support for netmail and local areas (see examples/jamnntpd.areas)
  
  - Added support for cancel messages
-  
+ 
+ - Introduced the -readorigin switch that makes JamNNTPd read addresses
+   from the origin line instead of the JAM headers.
+   
+ - "To: name" can be used on the first line of posted messages to set an 
+   alternative recipient name.
+ 
+ - Added partial support for LIST NEWSGROUPS so that JamNNTPd also works 
+   with Lynx.
+ 
+ - JamNNTPd no longer adds an empty REPLY kludge if to MSGID was found.
+ 
+ - Fixed -smartquote so that incorrect initials are not inserted.
+
+ - Fixed broken backspace quoting on From line.
+ 
+ - "jamnntpd -h" is more helpful.
+ 
+ - Error messages were cleaned up a bit.
+ 
+ - The Windows version now tries to display error messages instead of 
+   Winsock error codes. Only works on newer versions of Windows. 
+   
+ - Makechs now hopefully compiles without errors on *BSD.
+
+ - Cleaned up the build process a bit.
+
+
+Changes in version 0.61
+
+ - Fixed a bug that would cause JamNNTPd to crash when a JAM messagebase
+   couldn't be opened.
+   
+ - Fixed a bug that would cause JamNNTPd to crash when a default charset
+   had been specified in jamnntpd.groups. (Thanks Viktor!)
+   
 Changes in version 0.6
 
  - Configurable charset handling based on CHS files in the GoldED+ format. 

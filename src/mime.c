@@ -403,7 +403,7 @@ void mimemakeheaderline(uchar *dest,ulong destlen,uchar *keyword,uchar *data,uch
 
             for(c=0;data[c];c++)
             {
-               if(data[c] == '\\' || data[c] == 13)
+               if(data[c] == '"' || data[c] == '\\' || data[c] == 13)
                   quoted[d++]='\\';
 
                quoted[d++]=data[c];
