@@ -46,7 +46,7 @@ void makedate(time_t t,uchar *dest,uchar *tz)
    else
    {
       strcpy(rfctz, "GMT");
-      t1=t+jam_utcoffset;
+      t1=t1+jam_utcoffset;
    }
 
    tp=localtime(&t1);
@@ -178,7 +178,7 @@ bool matchcharset(uchar *pat,uchar *chrs,uchar *codepage)
 
       mystrncpy(buf2,strchr(pat,',')+1,20);
 
-      if(matchpattern(buf,chrs) && matchpattern(buf,codepage))
+      if(matchpattern(buf,chrs) && matchpattern(buf2,codepage))
          return(TRUE);
 
       return(FALSE);

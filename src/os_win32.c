@@ -69,7 +69,7 @@ void os_stopexclusive(void)
 
 void os_sleep(int x)
 {
-   sleep(x*1000);
+   Sleep(x*1000);
 }
 
 void os_logwrite(uchar *fmt,...)

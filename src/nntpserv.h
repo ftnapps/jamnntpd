@@ -37,14 +37,20 @@ struct var
    struct xlat *firstpostxlat;
    struct xlattab *firstxlattab;
 
+   uchar defaultreadchrs[20];
+   uchar defaultpostchrs[20];
+   
    uchar readgroups[50];
    uchar postgroups[50];
 
    uchar loginname[100];
    uchar password[100];
-
+   uchar dispname[36];
+   
    bool opt_flowed;
    bool opt_showto;
+
+   bool login;
 };
 
 #include "os.h"
@@ -98,6 +104,8 @@ extern uchar *cfg_usersfile;
 extern uchar *cfg_xlatfile;
 
 extern uchar *cfg_origin;
+extern uchar *cfg_guestsuffix;
+extern uchar *cfg_echomailjam;
 
 extern bool cfg_debug;
 extern bool cfg_noxlat;

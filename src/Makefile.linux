@@ -11,7 +11,13 @@ STRIP = strip
 
 OBJS = main.o nntpserv.o os_linux.o sockio.o groups.o misc.o xlat.o allow.o login.o mime.o
 
-jamnntpd : $(OBJS)
+targets: jamnntpd$(EXESUFFIX) makechs$(EXESUFFIX)
+
+makechs$(EXESUFFIX): makechs.c
+	$(CC) $(PLATFORMDEF) makechs.c -o makechs
+	$(STRIP) makechs$(EXESUFFIX)
+
+jamnntpd$(EXESUFFIX): $(OBJS)
 	$(CC) -o jamnntpd$(EXESUFFIX) $(OBJS) jamlib/jamlib.a -lpthread
 	$(STRIP) jamnntpd$(EXESUFFIX)
 

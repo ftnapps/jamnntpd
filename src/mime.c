@@ -386,7 +386,7 @@ void mimemakeheaderline(uchar *dest,ulong destlen,uchar *keyword,uchar *data,uch
 
    if(num8bit > 5 && num8bit > strlen(data)/2) method='b';
    else                                        method='q';
-
+ 
    if(!mime || noencode)
    {
       if(fromaddr)

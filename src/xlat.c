@@ -272,7 +272,7 @@ struct xlattab *readchs(struct var *var,uchar *filename)
 bool readxlat(struct var *var)
 {
    FILE *fp;
-   uchar s[1000],type[10],fromchrs[100],tochrs[100],filename[100];
+   uchar s[1000],type[20],fromchrs[100],tochrs[100],filename[100];
    uchar basename[100],fullfilename[250];
    bool res1,res2,res3,res4;
    ulong pos,line;
@@ -304,7 +304,7 @@ bool readxlat(struct var *var)
 
       if(s[0]!=0 && s[0]!='#')
       {
-         res1=getcfgword(s,&pos,type,10);
+         res1=getcfgword(s,&pos,type,20);
          res2=getcfgword(s,&pos,fromchrs,100);
          res3=getcfgword(s,&pos,tochrs,100);
          res4=getcfgword(s,&pos,filename,100);
@@ -312,6 +312,14 @@ bool readxlat(struct var *var)
          if(stricmp(type,"chsdir")==0 && res2)
          {
             mystrncpy(basename,fromchrs,100);
+         }
+         else if(stricmp(type,"defaultpost")==0 && res2)
+         {
+            mystrncpy(var->defaultpostchrs,fromchrs,20);
+         }
+         else if(stricmp(type,"defaultread")==0 && res2)
+         {
+            mystrncpy(var->defaultreadchrs,fromchrs,20);
          }
          else if(res1 && res2 && res3) /* xlattab is optional */
          {

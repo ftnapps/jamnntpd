@@ -1,80 +1,55 @@
 # Charset configuration for JamNNTPd
 #
-# Syntax:
-#
-# chsdir <directory>
-# read/post <source charset pattern> <destination charset name> <chs file>
-#
-# Source charsets may contain the wildcard "*" (everything after "*" is ignored).
-#
-# If you want to also match the CODEPAGE kludge to a pattern, append the pattern
-# for the codepage to the source charset pattern separated by a comma (see
-# examples). If you want to create a CODEPAGE kludge, add the codepage to the
-# destination charset name separated by a comma, for example "IBMPC,437".
-#
-# When reading messages, JamNNTPd will always set the charset to us-ascii for
-# messages that don't contain non-ascii characters.
-#
 # If you want to disable charset translation, uncomment the following two lines
 # and remove the rest of the file.
 #
 #read * unknown-8bit
 #post * ""
 
-# Directory where the *.chs files will be found
+# This is the directory where the *.chs files will be found
 
-chsdir /home/billing/fido/jamnntpd/xlat
+chsdir /home/fido/jamnntpd/xlat
 
 # Charset translations when reading messages
-#
-# Converts known charsets to Unicode (UTF-8). Messages without charset
-# information are assumed to be in IBMPC. Messages in other charsets
-# will not be converted and will be presented as unknown-8bit.
-#
-# If you don't want to use Unicode, you can use these lines instead:
-#
-#read CP437      iso-8859-1    ibm_iso.chs
-#read CP850      iso-8859-1    850_iso.chs
-#read CP865      iso-8859-1    865_iso.chs
-#read IBMPC,850  iso-8859-1    850_iso.chs
-#read IBMPC,865  iso-8859-1    865_iso.chs
-#read IBMPC      iso-8859-1    ibm_iso.chs
-#read ""         iso-8859-1    ibm_iso.chs
-#read MAC        iso-8859-1    mac_iso.chs
-#read LATIN-1    iso-8859-1
-#read *          unknown-8bit
+# 
+# The charset specified with "defaultread" is the charset JamNNTPd will use
+# when no charset was specified. It can be overridden for specific areas in
+# the jamnntpd.groups config file.
 
-read CP437      utf-8         437_utf.chs
-read CP850      utf-8         850_utf.chs
-read CP865      utf-8         865_utf.chs
-read IBMPC,850  utf-8         850_utf.chs
-read IBMPC,865  utf-8         865_utf.chs
-read IBMPC      utf-8         437_utf.chs
-read ""         utf-8         437_utf.chs
-read MAC        utf-8         mac_utf.chs
-read LATIN-1    utf-8         iso_utf.chs
-read CP866      utf-8         866_utf.chs
-read +7_FIDO    utf-8         866_utf.chs
+defaultread IBMPC
+
+# Syntax: read <CHRS>[,<CODEPAGE>] <tochrs> <xlat file>
+#
+# Here you can configure the charset translations to be used when reading
+# messages. CHRS and CODEPAGE are taken from the respective kludge lines. 
+# If you omit the xlat file, no actual charset translation will take place.
+
+read CP437      iso-8859-1    437_iso.chs
+read CP850      iso-8859-1    850_iso.chs
+read CP865      iso-8859-1    865_iso.chs
+read CP866      koi8-r        866_koi.chs
+read IBMPC,850  iso-8859-1    850_iso.chs
+read IBMPC,865  iso-8859-1    865_iso.chs
+read IBMPC      iso-8859-1    437_iso.chs
+read LATIN-1    iso-8859-1
 read *          unknown-8bit
 
 # Charset translations when posting messages
-#
-# Messages in iso-8859-1 and messages with unspecified charset are posted as
-# LATIN-1. The charsets iso-8859-15 and windows-1252 are nearly identical to
-# iso-8859-1 and are also posted as LATIN-1. Messages in us-ascii are posted
-# without CHRS kludge. Messages in other charsets will be rejected.
-#
-# If you want to convert posts to IBMPC, you can use these lines instead:
-#
-#post iso-8859-1   IBMPC         iso_ibm.chs
-#post iso-8859-15  IBMPC         iso_ibm.chs
-#post windows-1252 IBMPC         iso_ibm.chs
-#post ""           IBMPC         iso_ibm.chs
-#post us-ascii     ""
 
-post iso-8859-1   LATIN-1
-post iso-8859-15  LATIN-1
-post windows-1252 LATIN-1
-post ""           LATIN-1
-post us-ascii     ""
+# The charset specified with "defaultread" is the charset JamNNTPd will use
+# when no charset was specified. It can be overridden for specific areas in
+# the jamnntpd.groups config file.
+
+defaultpost iso-8859-1
+
+# Syntax: read <charset> <CHRS> <xlat file>
+#
+# Here you can configure the charset translations to be used when posting
+# messages. If you don't want to create CHRS kludges, enter "" as CHRS.
+# You should have "read" translations set up for all charsets you accept or
+# the receiver name of the posts migth not be translated properly.
+
+post iso-8859-1 IBMPC         iso_437.chs
+post koi8-r     CP866         koi_866.chs
+post us-ascii   ""
 

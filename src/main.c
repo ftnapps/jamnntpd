@@ -10,12 +10,15 @@ int main(int argc, char **argv)
 
    if(argc == 2 && (stricmp(argv[1],"?")==0 || stricmp(argv[1],"-h")==0))
    {
+
+           /*          1         2         3         4         5         6         7         8 */
+           /* 12345678901234567890123456789012345678901234567890123456789012345678901234567890 */     
       printf("Usage: jamnntpd [-debug] [-noecholog] [-nostripre] [-notearline]\n"
              "                [-noreplyaddr] [-smartquote] [-noencode] [-keepsoftcr]\n"
              "                [-notzutc] [-p <port>] [-m <maxconn>] [-def_flowed on/off]\n"
-             "                [-def_showto on/off] [-origin <origin>] [-g <groupsfile>]\n"
-             "                [-a <allowfile>] [-u <usersfile>] [-x <xlatfile>]\n"
-             "                [-l <logfile>]\n");
+             "                [-def_showto on/off] [-origin <origin>] [-guestsuffix <suffix>]\n"
+             "                [-echomailjam <echomail.jam> [-g <groupsfile>] [-a <allowfile>]\n"
+             "                [-u <usersfile>] [-x <xlatfile>] [-l <logfile>]\n");
 
       exit(0);
    }
@@ -119,6 +122,26 @@ int main(int argc, char **argv)
          }
 
          cfg_origin=argv[++c];
+      }
+      else if(stricmp(argv[c],"-guestsuffix")==0)
+      {
+         if(c+1 == argc)
+         {
+            printf("Missing argument for %s\n",argv[c]);
+            exit(0);
+         }
+
+         cfg_guestsuffix=argv[++c];
+      }
+      else if(stricmp(argv[c],"-echomailjam")==0)
+      {
+         if(c+1 == argc)
+         {
+            printf("Missing argument for %s\n",argv[c]);
+            exit(0);
+         }
+
+         cfg_echomailjam=argv[++c];
       }
       else if(stricmp(argv[c],"-g")==0)
       {
@@ -275,7 +298,7 @@ int main(int argc, char **argv)
 
    close(sock);
 
-   os_logwrite("JamNNTP exited");
+   os_logwrite(SERVER_NAME " exited");
    os_free();
 
    exit(0);

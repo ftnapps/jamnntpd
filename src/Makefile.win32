@@ -11,7 +11,13 @@ STRIP = strip
 
 OBJS = main.o nntpserv.o os_win32.o sockio.o groups.o misc.o xlat.o allow.o login.o mime.o
 
-jamnntpd : $(OBJS)
+targets: jamnntpd$(EXESUFFIX) makechs$(EXESUFFIX)
+
+makechs$(EXESUFFIX) : makechs.c
+	$(CC) $(PLATFORMDEF) makechs.c -o makechs$(EXESUFFIX) 
+	$(STRIP) makechs$(EXESUFFIX)
+
+jamnntpd$(EXESUFFIX) : $(OBJS)
 	$(CC) -o jamnntpd$(EXESUFFIX) $(OBJS) jamlib/jamlib.a -lwsock32
 	$(STRIP) jamnntpd$(EXESUFFIX)
 	

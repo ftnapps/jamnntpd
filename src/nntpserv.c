@@ -4,6 +4,8 @@ ulong cfg_port        = CFG_PORT;
 ulong cfg_maxconn     = CFG_MAXCONN;
 
 uchar *cfg_origin;
+uchar *cfg_guestsuffix;
+uchar *cfg_echomailjam;
 
 uchar *cfg_allowfile  = CFG_ALLOWFILE;
 uchar *cfg_groupsfile = CFG_GROUPSFILE;
@@ -105,7 +107,12 @@ bool jamopenarea(struct var *var,struct group *group)
 
    if(JAM_OpenMB(group->jampath,&var->openmb))
    {
-      if(var->openmb) free(var->openmb);
+      if(var->openmb)
+      {
+         free(var->openmb);
+         var->openmb=NULL;
+      }
+      
       os_logwrite("(%s) Failed to open JAM messagebase \"%s\"",var->clientid,group->jampath);
       return(FALSE);
    }
@@ -352,26 +359,17 @@ void copyline(uchar *dest,uchar *src,long len)
 
    d=0;
 
-   if(cfg_keepsoftcr)
-   {
-      for(c=0;c<len;c++)
-        if(src[c] != 10) dest[d++]=src[c];
-   }
-   else
-   {
-      for(c=0;c<len;c++)
-        if(src[c] != 0x8d && src[c] != 10) dest[d++]=src[c];
-   }
+   for(c=0;c<len;c++)
+     if(src[c] != 0x8d && src[c] != 10) dest[d++]=src[c];
 
    dest[d]=0;
 }
 
-void sendtextblock(struct var *var,uchar *text,struct xlat *xlat)
+void sendtextblock(struct var *var,uchar *text)
 {
    long c,d,textpos,lastspace;
    uchar buf[1000],buf2[1000];
    bool wrapped;
-   uchar *xlatres;
 
    textpos=0;
 
@@ -452,18 +450,7 @@ void sendtextblock(struct var *var,uchar *text,struct xlat *xlat)
 
       strcat(buf,CRLF);
 
-      if(xlat && xlat->xlattab)
-      {
-         if((xlatres=xlatstr(buf,xlat->xlattab)))
-         {
-            socksendtext(var,xlatres);
-            free(xlatres);
-         }
-      }
-      else
-      {
-         socksendtext(var,buf);
-      }
+      socksendtext(var,buf);
    }
 }
 
@@ -472,7 +459,7 @@ void command_abhs(struct var *var,uchar *cmd)
    uchar *article;
    ulong articlenum;
    struct group *group;
-   ulong min,max,num;
+   ulong min,max,num,c,d;
    uchar datebuf[50];
    uchar fromaddr[100],toaddr[100],replyaddr[100];
    uchar fromname[100],toname[100],subject[100];
@@ -657,7 +644,7 @@ void command_abhs(struct var *var,uchar *cmd)
    {
       if(field->LoID == JAMSFLD_FTSKLUDGE)
       {
-			mystrncpy(buf,field->Buffer,min(field->DatLen+1,200));
+         mystrncpy(buf,field->Buffer,min(field->DatLen+1,200));
 
          if(strnicmp(buf,"CHRS: ",6)==0)
          {
@@ -680,6 +667,9 @@ void command_abhs(struct var *var,uchar *cmd)
       }
    }
 
+   if(chrs[0] == 0) strcpy(chrs,group->defaultchrs);
+   if(chrs[0] == 0) strcpy(chrs,var->defaultreadchrs);      
+         
    for(xlat=var->firstreadxlat;xlat;xlat=xlat->next)
       if(matchcharset(xlat->fromchrs,chrs,codepage)) break;
 
@@ -911,9 +901,32 @@ void command_abhs(struct var *var,uchar *cmd)
    if(stricmp(cmd,"ARTICLE") == 0 || stricmp(cmd,"BODY") == 0)
    {
       if(header.TxtLen)
-         sendtextblock(var,text,xlat);
+      {
+         if(!cfg_keepsoftcr)
+         {
+            d=0;
+            
+            for(c=0;text[c];c++)
+               if(text[c] != 0x8d) text[d++]=text[c];
+            
+            text[d]=0;
+         }
+         
+         if(xlat && xlat->xlattab)
+         {
+            if((xlatres=xlatstr(text,xlat->xlattab)))
+            {
+               sendtextblock(var,xlatres);
+               free(xlatres);
+            }
+         }
+         else
+         {
+            sendtextblock(var,text);
+         }   
+      }     
    }
-
+   
    socksendtext(var,"." CRLF);
 
    JAM_DelSubPacket(subpack);
@@ -1023,7 +1036,8 @@ void command_xover(struct var *var)
             chrs[0]=0;
             codepage[0]=0;
             replyaddr[0]=0;
-
+            timezone[0]=0;
+            
             while((field=JAM_GetSubfield_R(subpack,&count)))
             {
                switch(field->LoID)
@@ -1078,11 +1092,15 @@ void command_xover(struct var *var)
                }
             }
 
-            if(toname[0] == 0)
-               strcpy(toname,"(none)");
+            if(fromaddr[0] == 0) strcpy(fromaddr,"unknown");
+            if(fromname[0] == 0) strcpy(fromname,"unknown");
+            if(toname[0] == 0)   strcpy(toname,"(none)");
 
             /* Do xlat */
-
+            
+            if(chrs[0] == 0) strcpy(chrs,var->currentgroup->defaultchrs);
+            if(chrs[0] == 0) strcpy(chrs,var->defaultreadchrs);                
+            
             for(xlat=var->firstreadxlat;xlat;xlat=xlat->next)
                if(matchcharset(xlat->fromchrs,chrs,codepage)) break;
 
@@ -1234,7 +1252,7 @@ void addjamfield(s_JamSubPacket *SubPacket_PS,ulong fieldnum,uchar *fielddata)
    JAM_PutSubfield( SubPacket_PS, &Subfield_S);
 }
 
-void getparentmsgidfromnum(struct var *var,uchar *article,uchar *groupname,uchar *msgid,uchar *from,ulong *oldnum)
+void getparentmsgidfromnum(struct var *var,uchar *article,uchar *groupname,uchar *msgid,uchar *from,ulong *oldnum,uchar *destchrs)
 {
    uchar *at,*pc;
    struct group *group;
@@ -1245,7 +1263,10 @@ void getparentmsgidfromnum(struct var *var,uchar *article,uchar *groupname,uchar
    s_JamSubfield* field;
    int res;
    ulong count;
-
+   uchar buf[100],chrs[20],codepage[20];
+   struct xlat *xlat;
+   uchar *xlatres;
+      
    msgid[0]=0;
    from[0]=0;
    *oldnum=0;
@@ -1291,11 +1312,6 @@ void getparentmsgidfromnum(struct var *var,uchar *article,uchar *groupname,uchar
       return;
    }
 
-   if(!(subpack=JAM_NewSubPacket()))
-   {
-      return;
-   }
-
    res=JAM_ReadMsgHeader(var->openmb,articlenum-baseheader.BaseMsgNum,&header,&subpack);
 
    if(res != 0 && res != JAM_NO_MESSAGE)
@@ -1320,21 +1336,51 @@ void getparentmsgidfromnum(struct var *var,uchar *article,uchar *groupname,uchar
 
       if(field->LoID == JAMSFLD_SENDERNAME)
          mystrncpy(from,field->Buffer,min(field->DatLen+1,100));
-   }
 
+      if(field->LoID == JAMSFLD_FTSKLUDGE)
+      {
+         mystrncpy(buf,field->Buffer,min(field->DatLen+1,100));
+
+         if(strnicmp(buf,"CHRS: ",6)==0)
+         {
+            mystrncpy(chrs,&buf[6],20);
+            if(strchr(chrs,' ')) *strchr(chrs,' ')=0;
+            strip(chrs);
+         }
+
+         if(strnicmp(buf,"CHARSET: ",9)==0)
+            mystrncpy(chrs,&buf[9],20);
+
+         if(strnicmp(buf,"CODEPAGE: ",10)==0)
+            mystrncpy(codepage,&buf[10],20);
+      }
+   }                     
+
+   for(xlat=var->firstreadxlat;xlat;xlat=xlat->next)
+      if(matchcharset(xlat->fromchrs,chrs,codepage) && matchpattern(destchrs,xlat->tochrs)) break;
+      
+   if(xlat && xlat->xlattab)
+   {
+      if((xlatres=xlatstr(from,xlat->xlattab)))
+      {
+         mystrncpy(from,xlatres,100);
+         free(xlatres);
+      }
+   }
+   
    JAM_DelSubPacket(subpack);
    return;
 }
 
+/* line should have some extra room. line may grow by one character */
 void tidyquote(uchar *line)
 {
-   /* line should have some extra room. line may grow by one character */
+   int c,c2,c3,c4,d;
+   
    int qn_begin=0;
    int qn_length=0;
    int qn_times=0;
    int qn_end=0;
-
-   int c=0,c2,c3,d;
 
    int kg=TRUE;
 
@@ -1343,13 +1389,17 @@ void tidyquote(uchar *line)
    if(!(input=strdup(line)))
       return;
 
+   c=0;      
+      
    while(kg)
    {
+      c4=c;
+      
       while(input[c] == ' ') c++;
 
       c3=c;
 
-      while(input[c] != ' ' && input[c] != 13)
+      while(input[c] != ' ' && input[c] != 13 && input[c] != 0)
       {
          if(input[c] == '<') break;
          c++;
@@ -1391,7 +1441,7 @@ void tidyquote(uchar *line)
          for(c2=0;c2<qn_length;c2++) line[d++]=input[qn_begin+c2];
          for(c2=0;c2<qn_times;c2++)  line[d++]='>';
          line[d++]=32;
-         strcpy(&line[d],&input[c3]);
+         strcpy(&line[d],&input[c4]);
       }
    }
 
@@ -1526,9 +1576,10 @@ void command_post(struct var *var)
    s_JamMsgHeader	Header_S;
    time_t t1,t2;
    struct tm *tp;
-   int res,timeofs,timesign;
+   int res,timeofs,timesign,tr;
    bool flowed;
-
+   FILE *fp;
+   
    allocsize=POST_MAXSIZE+500; /* Some extra room for tearline and origin */
 
    if(!(text=malloc(allocsize)))
@@ -1568,7 +1619,7 @@ void command_post(struct var *var)
    }
 
    text[textpos]=0;
-printf("message read\n");
+   
    if(!get_server_quit)
    {
       free(text);
@@ -1614,7 +1665,7 @@ printf("message read\n");
          }
          else if(c>0 && text[textpos-1] == 13 && text[textpos] == 10)
          {
-            if(text[textpos+1] == ' ' || text[textpos+1] == '\t')
+            if(c>1 && (text[textpos+1] == ' ' || text[textpos+1] == '\t'))
             {
                /* Multi-line header */
 
@@ -1744,8 +1795,7 @@ printf("message read\n");
          finished=TRUE; /* End of headers */
       }
    }
-printf("decode header\n");
-
+   
    /* Strip Re: */
 
    if(!cfg_nostripre && (strncmp(subject,"Re: ",4)==0 || strcmp(subject,"Re:")==0))
@@ -1793,7 +1843,7 @@ printf("decode header\n");
    }
 
    /* Decode message */
-printf("before decode\n");
+   
    if(stricmp(contenttransferencoding,"quoted-printable")==0)
    {
       decodeqpbody(&text[textpos],&text[textpos]);
@@ -1809,7 +1859,7 @@ printf("before decode\n");
       free(text);
       return;
    }
-printf("decode body\n");
+   
    /* Reformat text */
 
    d=0;
@@ -1878,7 +1928,7 @@ printf("decode body\n");
       text[d++]=13;
       text[d++]=13;
    }
-printf("reformat body\n");
+   
    text[d]=0;
 
    /* Check charset */
@@ -1891,6 +1941,9 @@ printf("reformat body\n");
       return;
    }
 
+   if(chrs[0] == 0)
+      strcpy(chrs,var->defaultpostchrs);   
+      
    for(xlat=var->firstpostxlat;xlat;xlat=xlat->next)
       if(matchpattern(xlat->fromchrs,chrs)) break;
 
@@ -1901,7 +1954,7 @@ printf("reformat body\n");
       free(text);
       return;
    }
-printf("xlat1\n");
+   
    /* Check access rights */
 
    for(g=var->firstgroup;g;g=g->next)
@@ -1963,7 +2016,7 @@ printf("xlat1\n");
 
    if(reference[0])
    {
-      getparentmsgidfromnum(var,reference,g->tagname,replyid,toname,&parentmsg);
+      getparentmsgidfromnum(var,reference,g->tagname,replyid,toname,&parentmsg,xlat->fromchrs);
 
       addjamfield(SubPacket_PS,JAMSFLD_REPLYID,replyid);
       Header_S.ReplyTo  = parentmsg;
@@ -2001,6 +2054,18 @@ printf("xlat1\n");
    if(strlen(text) + strlen(line) < allocsize-1)
       strcat(text,line);
 
+   if(var->dispname[0])
+      strcpy(from,var->dispname);
+   
+   if(!var->login && cfg_guestsuffix)
+   {
+      tr=36-strlen(cfg_guestsuffix)-1;
+      if(tr < 0) tr=0;
+      
+      from[tr]=0;
+      strcat(from,cfg_guestsuffix);
+   }      
+   
    /* Do xlat */
 
    if(xlat->xlattab)
@@ -2011,6 +2076,12 @@ printf("xlat1\n");
          free(xlatres);
       }
 
+      if((xlatres=xlatstr(toname,xlat->xlattab)))
+      {
+         mystrncpy(toname,xlatres,36);
+         free(xlatres);
+      }
+      
       if((xlatres=xlatstr(subject,xlat->xlattab)))
       {
          mystrncpy(subject,xlatres,72);
@@ -2023,7 +2094,7 @@ printf("xlat1\n");
          text=xlatres;
       }
    }
-printf("xlat2\n");
+     
    addjamfield(SubPacket_PS,JAMSFLD_SENDERNAME,from);
    addjamfield(SubPacket_PS,JAMSFLD_RECVRNAME,toname);
    addjamfield(SubPacket_PS,JAMSFLD_SUBJECT,subject);
@@ -2062,8 +2133,6 @@ printf("xlat2\n");
       }
    }
 
-printf("ready\n");
-
    if(!cfg_notzutc)
       addjamfield(SubPacket_PS,JAMSFLD_FTSKLUDGE,timezone);
 
@@ -2087,9 +2156,9 @@ printf("ready\n");
       JAM_DelSubPacket(SubPacket_PS);
       return;
    }
-printf("open and locked\n");
+   
    res=JAM_AddMessage(var->openmb,&Header_S,SubPacket_PS,text,strlen(text));
-printf("added\n");
+   
    if(res)
    {
       socksendtext(var,"503 Local error: Failed to write to messagebase" CRLF);
@@ -2108,8 +2177,21 @@ printf("added\n");
 
    JAM_UnlockMB(var->openmb);
 
+   if(cfg_echomailjam)
+   {
+      if(!(fp=fopen(cfg_echomailjam,"a")))
+      {
+         os_logwrite("(%s) Failed to open %s",var->clientid,cfg_echomailjam);
+      }
+      else
+      {
+         fprintf(fp,"%s %ld\n",g->jampath,Header_S.MsgNum);
+         fclose(fp);
+      }
+   }
+   
+   
    free(text);
-printf("finished\n");
 }
 
 void command_authinfo(struct var *var)

@@ -5,7 +5,7 @@
 
                             (billing@df.lth.se)
 
-                                2003-12-20
+                                2004-07-11
 
 1. Introduction
 ===============
@@ -44,13 +44,13 @@ Linux, you should avoid running it with root privileges.
 Usage: jamnntpd [-debug] [-noecholog] [-nostripre] [-notearline]
                 [-noreplyaddr] [-smartquote] [-noencode] [-keepsoftcr]
                 [-notzutc] [-p <port>] [-m <maxconn>] [-def_flowed on/off]
-                [-def_showto on/off] [-origin <origin>] [-g <groupsfile>]
-                [-a <allowfile>] [-u <usersfile>] [-x <xlatfile>]
-                [-l <logfile>]
+                [-def_showto on/off] [-origin <origin>] [-guestsuffix <suffix>]
+                [-echomailjam <echomail.jam> [-g <groupsfile>] [-a <allowfile>]
+                [-u <usersfile>] [-x <xlatfile>] [-l <logfile>]
 
  -debug
 
-   If this option is used, JamNNTPd will print att sent and received text
+   If this option is used, JamNNTPd will print all sent and received text
    to the console window. Useful for testing.
 
  -noecholog
@@ -102,7 +102,7 @@ Usage: jamnntpd [-debug] [-noecholog] [-nostripre] [-notearline]
  -notzutc
 
    JamNNTPd normally writes the timezone into a TZUTC kludge when a message
-   is posted. You can use this line if you don't want to create TZUTC kludges.
+   is posted. You can use this option if you don't want to create TZUTC kludges.
 
  -p <port>
 
@@ -125,14 +125,28 @@ Usage: jamnntpd [-debug] [-noecholog] [-nostripre] [-notearline]
             the receiver name as a part of the sender name. With this option,
             this behaviour can be turned on or off.
 
-   These can be modified by the user by loggin in with parameters (section 4.4)
+   These can be modified by the user by logging in with parameters (section 4.4)
 
  -origin <origin>
 
-   Normally JamNNTPd uses the text found in the Organization header line as the
-   Origin line text in posted messages. You can use this switch to override the
-   Organization line and set your own origin for all posted messages.
+   Normally JamNNTPd uses the text found in the Organization header line as 
+   the Origin line text in posted messages. You can use this switch to 
+   override the Organization line and set your own origin for all posted 
+   messages.
 
+ -guestsuffix <suffix>
+ 
+   If desired, JamNNTPd can add a suffix to posts from unauthenticated users. 
+   To activate that feature, specify the suffix here. 
+    
+   Example:  -guestsuffix " [GUEST]".
+   
+ -echomailjam <echomail.jam>
+ 
+   If you specify a filename here, JamNNTPd will write a line to this file 
+   with the messagebase and message number of each message that is posted.
+   The file follows the ECHOMAIL.JAM format supported by some tossers. 
+    
  -g <groupsfile>
  -a <allowfile>
  -u <usersfile>
@@ -148,7 +162,8 @@ Usage: jamnntpd [-debug] [-noecholog] [-nostripre] [-notearline]
 -----------------
 Access rights in JamNNTPd is based on access groups. Every newsgroup in
 JamNNTPd belongs to an acess group. Access groups are named using one letter,
-typically A to Z (access groups are case-insensitive).
+typically A to Z (access groups are case-insensitive). In the configuration
+files, you can use "*" for "all groups" and "-" for "no groups". 
 
 When a user connects to the server, he/she gets access to two set of access
 groups. The first set of groups are for read access and the second set of
@@ -203,11 +218,11 @@ Examples:
 
 5. Compilation
 ==============
-JamNNTPd should compile with most compilers. I use gcc under Linux and
-gcc-mingw32 under Windows. To compile JamNNTPd, go to the src directory
-and type either "make linux" or "make win32" depending on what platform
-you are compiling JamNNTPd on. After a successful compilation, you will
-find a file called "jamnntpd" or "jamnntpd.exe" in the src directory.
+JamNNTPd should compile with most compilers. I use gcc under Linux and MinGW
+under Windows. To compile JamNNTPd, go to the src directory and type either 
+"make linux" or "make win32" depending on what platform you are compiling 
+JamNNTPd on. After a successful compilation, you will find a file called 
+"jamnntpd" or "jamnntpd.exe" in the src directory.
 
 6. Compatibility
 ================
@@ -267,7 +282,7 @@ slighty worse both on the NNTP and fidonet side.
 6.6 Character set translation
 -----------------------------
 JamNNTPd has good support for character sets. The character set translation
-is configured in the "xlat" file and uses CHS files in the GoldED+ format for
+are configured in the "xlat" file and uses CHS files in the GoldED+ format for
 the actual translation. Extendended CHS files with 256 character translations
 are supported and a character may be translated to up to four characters.
 
@@ -284,7 +299,48 @@ JamNNTPd has been found to work with the following newsreaders:
 
 Of these, only Mozilla seems to support format=flowed.
 
-7. Todo
+7. How to create additional *.chs files
+=======================================
+The *.chs files in the "xlat" and "unicode/xlat" directories are character 
+set translation tables in the GoldED+ format. The files were created from 
+mappings files found at this URL:
+ 
+ http://www.unicode.org/Public/MAPPINGS/
+
+Fallback sequences for characters that don't exist in the target charset 
+were taken from Markus Kuhn's transliteration tables found at the URL below:
+
+ http://www.cl.cam.ac.uk/~mgk25/download/transtab.tar.gz
+ 
+If you want to create additional translation tables, you can easily do so 
+with the supplied utility "makechs". 
+
+Syntax for makechs:
+
+ makechs <fromchrs> <destchrs> <frommap> [<destmap>]
+   
+<fromchrs> is the fidonet name of the charset you want to convert from.
+  
+<destchrs> is the fidonet name of the charset you want to convert to.
+   
+<frommap> is the Unicode mappings file for the source charset. 
+   
+<destmap> is the Unicode mappings file for the destination charset. If 
+you don't supply a mappings file, makechs will instead create a chs file
+that converts the source charset to utf-8.
+
+The output of makechs is written to the console and needs to be redirected
+to the desired file.
+
+Examples:
+
+ makechs IBMPC LATIN-1 map/cp437.txt map/8859-1.txt >437_iso.chs
+ makechs IBMPC UTF-8 map/cp437.txt >437_utf.chs
+ 
+Mappings files for all imaginable character sets can be found at the Unicode 
+site above.
+
+8. Todo
 =======
 Here are some improvements that maybe ought to be done:
 

@@ -2,9 +2,13 @@
 #
 # Syntax:
 #
-# <tagname> <access group> <aka> <jampath>
+# <tagname> <access group> <aka> <jampath> [<default chrs>]
 #
+# The default charset (optional) is the assumed charset when no CHRS or
+# CHARSET kludge is found. The rest should be self-explanatory.
+
 NETMAIL               X 2:205/454.77 c:\fido\areas\NETMAIL
 BAD                   X 2:205/454.77 c:\fido\areas\BAD
 R20_TEKNISKT_RASERI   A 2:205/454.77 c:\fido\areas\R20_TEKNISKT_RASERI
 R20_KURIOSA           A 2:205/454.77 c:\fido\areas\R20_KURIOSA
+R20_AMIGA             A 2:205/454.77 c:\fido\areas\R20_AMIGA LATIN-1

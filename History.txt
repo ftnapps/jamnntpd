@@ -1,6 +1,8 @@
 Changes in version 0.6
 
- - Configurable charset handling based on CHS files in the GoldED+ format.
+ - Configurable charset handling based on CHS files in the GoldED+ format. 
+   The -keepsoftcr option can be used to prevent JamNNTPd from removing 
+   the Soft-CR character (0x8d) used in some character sets. 
 
  - Greatly improved MIME-handling. JamNNTPd now handles both quoted-printable
    and base64 in both headers and message body when posting messages. Message
@@ -9,24 +11,33 @@ Changes in version 0.6
 
  - Now supports "quoting" with backslash as described in RFC-822.
 
- - New command-line option -origin
+ - JamNNTPd can now create an echomail.jam file that contains a list of all
+   posted messages. The echomail.jam file can also be used as a semaphore.
 
- - New command-line option -keepsoftcr
-
- - Support for TZUTC/TZUTCINFO kludges. Thanks to Peter Karlsson for the patch.
-   New command-line option -notzutc.
+ - A new -origin switch can be used to override the Organization line for
+   the origin.
+ 
+ - Support for TZUTC/TZUTCINFO kludges. JamNNTPd now creates a TZUTC kludge
+   unless the -notzutc option is used. Thanks to Peter Karlsson for the patch.
 
  - Better parsing of configuration files. You can now use quotes for strings
    containing space characters. "" means an empty string.
 
- - Groups are now case-insensitive. In addition, "*" now means all groups and
-   "-" means no groups.
+ - It is now possible to override the From name on posts from authenticated
+   users. It is also possible to specify a suffix that is added to the From
+   name of all unauthenticated users using the -guestsuffix option.
+   
+ - Access groups are now case-insensitive. In addition, "*" now means all 
+   groups and "-" means no groups.
 
- - Fixed response code of NEWGROUPS command.
+ - The -smartquote option no longer removes initial space characters from 
+   quoted text
+ 
+ - Fixed broken response code of NEWGROUPS command.
 
- - LIST ACTIVE and LIST OVERVIEW.FMT are now also supported.
+ - The LIST ACTIVE and LIST OVERVIEW.FMT commands are now also supported.
 
- - JamNNTPd now creates an X-Comment-To header line
+ - JamNNTPd now displays an X-Comment-To header line.
 
  - The signature delimiter "-- " is no longer reflowed when posting with
    format=flowed.
@@ -36,7 +47,15 @@ Changes in version 0.6
 
  - Increased the maximum size for posts from 10 000 bytes to 20 000 bytes.
 
+ - JamNNTPd no longer crashes when an area cannot be opened.
+ 
+ - The body text of posts that started with a blank line were lost in 
+   previous versions. This has now been fixed.
 
+ - Upgraded JAMLIB to version 1.3.2.
+      
+ - Other minor fixes and improvements.
+ 
 Changes in version 0.5
 
  - Superfluous space characters are now removed when lines are joined when

@@ -3,8 +3,8 @@
 bool readgroups(struct var *var)
 {
    FILE *fp;
-   uchar s[1000],tagname[100],group[2],aka[40],jampath[100];
-   bool res1,res2,res3,res4;
+   uchar s[1000],tagname[100],group[2],aka[40],jampath[100],defchrs[40];
+   bool res1,res2,res3,res4,res5;
    ulong pos,line;
    struct group *newgroup,*lastgroup;
 
@@ -31,6 +31,7 @@ bool readgroups(struct var *var)
          res2=getcfgword(s,&pos,group,2);
          res3=getcfgword(s,&pos,aka,40);
          res4=getcfgword(s,&pos,jampath,100);
+         res5=getcfgword(s,&pos,defchrs,20);
 
          if(res1 && res2 && res3 && res4)
          {
@@ -49,6 +50,9 @@ bool readgroups(struct var *var)
             newgroup->group=group[0];
             strcpy(newgroup->aka,aka);
             strcpy(newgroup->jampath,jampath);
+         
+            if(res5) strcpy(newgroup->defaultchrs,defchrs);
+            else     newgroup->defaultchrs[0]=0;
          }
          else
          {
