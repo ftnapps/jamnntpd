@@ -10,6 +10,7 @@ struct xlat
    struct xlat *next;
    uchar fromchrs[20];
    uchar tochrs[20];
+   bool keepsoftcr;
    struct xlattab *xlattab;
 };
 
@@ -26,4 +27,5 @@ void freexlat(struct var *var);
 bool matchcharset(uchar *pat,uchar *chrs,uchar *codepage);
 void setchrscodepage(uchar *chrs,uchar *codepage,uchar *str);
 struct xlat *findreadxlat(struct var *var,struct group *group,uchar *ichrs,uchar *icodepage,uchar *destpat);
-struct xlat *findpostxlat(struct var *var,uchar *ichrs);
+struct xlat *findpostxlat(struct var *var,uchar *ichrs,uchar *destpat);
+

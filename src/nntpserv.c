@@ -23,7 +23,6 @@ bool cfg_noreplyaddr;
 bool cfg_notearline;
 bool cfg_smartquote;
 bool cfg_noencode;
-bool cfg_keepsoftcr;
 bool cfg_notzutc;
 
 int server_openconnections;
@@ -350,7 +349,7 @@ struct attributename attributenames[] =
   { 0,               NULL           } };
 
 #define WRAP_WIDTH 72
-#define LINE_WIDTH 78 /* leaves room for trailing space */
+#define LINE_WIDTH 79
 #define MAX_WIDTH 997
 
 void copyline(uchar *dest,uchar *src,long len)
@@ -365,10 +364,10 @@ void copyline(uchar *dest,uchar *src,long len)
    dest[d]=0;
 }
 
-void sendtextblock(struct var *var,uchar *text)
+void sendtextblock(struct var *var,uchar *text,struct xlat *xlat)
 {
    long c,d,textpos,lastspace;
-   uchar buf[1000],buf2[1000];
+   uchar buf[1000],buf2[1000],*xlatres;
    bool wrapped;
 
    textpos=0;
@@ -423,8 +422,15 @@ void sendtextblock(struct var *var,uchar *text)
          while(text[textpos+c] != 0 && text[textpos+c] != 13 && text[textpos+c] != 32 && c<MAX_WIDTH)
             c++;
 
+         
          copyline(buf,&text[textpos],c);
-         if(text[textpos+c] == 32 || text[textpos+c] == 13) c++;
+         
+         if(text[textpos+c] == 32)
+            wrapped=TRUE;
+         
+         if(text[textpos+c] == 32 || text[textpos+c] == 13) 
+            c++;
+         
          textpos+=c;
       }
 
@@ -432,9 +438,9 @@ void sendtextblock(struct var *var,uchar *text)
 
       if(var->opt_flowed && strcmp(buf,"-- ")!=0)
       {
-         strip(buf);
          if(wrapped) strcat(buf," "); /* For format=flowed */
-
+         else        strip(buf);
+         
          if(buf[0] == ' ' || strncmp(buf,"From ",5)==0)
          {
             strcpy(buf2,buf);
@@ -450,8 +456,34 @@ void sendtextblock(struct var *var,uchar *text)
 
       strcat(buf,CRLF);
 
-      socksendtext(var,buf);
+      if(xlat && xlat->xlattab)
+      {
+         if((xlatres=xlatstr(buf,xlat->xlattab)))
+         {
+            socksendtext(var,xlatres);
+            free(xlatres);
+         }
+      }
+      else
+      {
+         socksendtext(var,buf);
+      }   
    }
+}
+
+void stripreplyaddr(uchar *str)
+{
+   /* to take care of "full name" <name@domain> formar */
+   
+   uchar *ch;
+   
+   if((ch=strchr(str,'<')))
+   {
+      strcpy(str,ch+1);
+
+      if((ch=strchr(str,'>')))
+         *ch=0;
+    }
 }
 
 void command_abhs(struct var *var,uchar *cmd)
@@ -722,29 +754,30 @@ void command_abhs(struct var *var,uchar *cmd)
                break;
 
             case JAMSFLD_FTSKLUDGE:
-               if(field->DatLen > 10)
-               {
-                  if(strnicmp(field->Buffer,"REPLYADDR ",10)==0)
-                     mystrncpy(replyaddr,&field->Buffer[10],min(field->DatLen+1-10,100));
+               mystrncpy(buf,field->Buffer,min(field->DatLen+1,100));
+            
+               if(strnicmp(buf,"REPLYADDR ",10)==0)
+                  mystrncpy(replyaddr,&buf[10],100);
 
-                  if(strnicmp(field->Buffer,"REPLYADDR: ",11)==0)
-                     mystrncpy(replyaddr,&field->Buffer[11],min(field->DatLen+1-11,100));
+               if(strnicmp(buf,"REPLYADDR: ",11)==0)
+                  mystrncpy(replyaddr,&buf[11],100);
 
-                  if(strnicmp(field->Buffer,"TZUTC: ",7)==0)
-                     mystrncpy(timezone,&field->Buffer[7],min(field->DatLen+1-7,20));
+               if(strnicmp(buf,"TZUTC: ",7)==0)
+                  mystrncpy(timezone,&buf[7],20);
 
-                  if(strnicmp(field->Buffer,"TZUTCINFO: ",11)==0)
-                     mystrncpy(timezone,&field->Buffer[11],min(field->DatLen+1-11,20));
-               }
+               if(strnicmp(buf,"TZUTCINFO: ",11)==0)
+                  mystrncpy(timezone,&buf[11],20);
 
                break;
          }
       }
 
+      stripreplyaddr(replyaddr);
+      
       if(fromaddr[0] == 0) strcpy(fromaddr,"unknown");
       if(fromname[0] == 0) strcpy(fromname,"unknown");
       if(toname[0] == 0)   strcpy(toname,"(none)");
-
+      
       if(xlat && xlat->xlattab)
       {
          if((xlatres=xlatstr(fromname,xlat->xlattab)))
@@ -898,7 +931,7 @@ void command_abhs(struct var *var,uchar *cmd)
    {
       if(header.TxtLen)
       {
-         if(!cfg_keepsoftcr)
+         if(!(xlat && xlat->keepsoftcr))
          {
             d=0;
             
@@ -908,18 +941,7 @@ void command_abhs(struct var *var,uchar *cmd)
             text[d]=0;
          }
          
-         if(xlat && xlat->xlattab)
-         {
-            if((xlatres=xlatstr(text,xlat->xlattab)))
-            {
-               sendtextblock(var,xlatres);
-               free(xlatres);
-            }
-         }
-         else
-         {
-            sendtextblock(var,text);
-         }   
+         sendtextblock(var,text,xlat);
       }     
    }
    
@@ -1074,20 +1096,22 @@ void command_xover(struct var *var)
                      if(strnicmp(buf,"CODEPAGE: ",10)==0)
                         mystrncpy(codepage,&buf[10],20);
 
-                     if(strnicmp(field->Buffer,"REPLYADDR ",10)==0)
+                     if(strnicmp(buf,"REPLYADDR ",10)==0)
                         mystrncpy(replyaddr,&buf[10],100);
 
-                     if(strnicmp(field->Buffer,"REPLYADDR: ",11)==0)
+                     if(strnicmp(buf,"REPLYADDR: ",11)==0)
                         mystrncpy(replyaddr,&buf[11],100);
 
-                     if(strnicmp(field->Buffer,"TZUTC: ",7)==0)
+                     if(strnicmp(buf,"TZUTC: ",7)==0)
                         mystrncpy(timezone,&buf[7],20);
 
-                     if(strnicmp(field->Buffer,"TZUTCINFO: ",11)==0)
+                     if(strnicmp(buf,"TZUTCINFO: ",11)==0)
                         mystrncpy(timezone,&buf[11],20);
                }
             }
 
+            stripreplyaddr(replyaddr);
+            
             if(fromaddr[0] == 0) strcpy(fromaddr,"unknown");
             if(fromname[0] == 0) strcpy(fromname,"unknown");
             if(toname[0] == 0)   strcpy(toname,"(none)");
@@ -1370,78 +1394,83 @@ void getparentmsgidfromnum(struct var *var,uchar *article,uchar *groupname,uchar
    return;
 }
 
-/* line should have some extra room. line may grow by one character */
-void tidyquote(uchar *line)
+/* line should have some extra room. line may grow by one or two characters */
+void tidyquote(char *line)
 {
-   int c,c2,c3,c4,d;
+   int lastquote,numquotes,c;
+   char *input,*initials;
    
-   int qn_begin=0;
-   int qn_length=0;
-   int qn_times=0;
-   int qn_end=0;
-
-   int kg=TRUE;
-
-   uchar *input;
-
    if(!(input=strdup(line)))
       return;
 
-   c=0;      
-      
-   while(kg)
+   strip(input);
+   
+   numquotes=0;
+   lastquote=0;      
+         
+   for(c=0;input[c]!=0;c++)
    {
-      c4=c;
-      
-      while(input[c] == ' ') c++;
-
-      c3=c;
-
-      while(input[c] != ' ' && input[c] != 13 && input[c] != 0)
+      if(input[c] == '>')
       {
-         if(input[c] == '<') break;
-         c++;
+         lastquote=c;
+         numquotes++;
       }
-
-      if(input[c]==13 || input[c]==0)
+      else if(input[c] == '<')
       {
-         kg=FALSE;
+         break;
       }
-
-      if(input[c-1]=='>')
+      else if(input[c] != ' ' && input[c+1] == ' ')
       {
-         for(c2=c-1;input[c2]=='>' && c2>=c3;c2--)
-         {
-            qn_times++;
-         }
-
-         qn_begin=c3;
-         qn_length=c2-c3+1;
-         qn_end=c;
-
-         c++;
-      }
-      else kg=FALSE;
-   }
-
-   if(qn_times)
-   {
-      if(input[qn_end]==13 || input[qn_end]==0)
-      {
-         line[0]=13;
-         line[1]=0;
-      }
-      else
-      {
-         d=0;
-
-         line[d++]=32;
-         for(c2=0;c2<qn_length;c2++) line[d++]=input[qn_begin+c2];
-         for(c2=0;c2<qn_times;c2++)  line[d++]='>';
-         line[d++]=32;
-         strcpy(&line[d],&input[c4]);
+         break;
       }
    }
+               
+   if(numquotes)
+   {
+      initials="";
+                  
+      /* Find end of initials */
+      
+      c=lastquote;
+      
+      while(c > 0 && input[c] == '>')
+         c--;
+         
+      if(input[c] != '>')
+      {
+         /* Initials found */
+         
+         input[c+1]=0;
+         
+         while(c > 0 && input[c] != ' ' && input[c] != '>')
+            c--;
+            
+         if(input[c] == ' ' || input[c] == '>') initials=&input[c+1];         
+         else                                   initials=&input[c];
+      }
+
+      /* Recreate line */
+      
+      if(input[lastquote+1] == 0)
+      {
+         strcpy(line,"\x0d");
+      }
+      else            
+      {
+         strcpy(line," ");
+         strcat(line,initials);
+      
+         for(c=0;c<numquotes;c++)
+            strcat(line,">");
+         
+         strcat(line," ");
+      
+         if(input[lastquote+1] == ' ') strcat(line,&input[lastquote+2]);
+         else                          strcat(line,&input[lastquote+1]);
+      
+         strcat(line,"\x0d");
+      }
+   }         
 
    free(input);
 }
@@ -1929,26 +1958,6 @@ void command_post(struct var *var)
    
    text[d]=0;
 
-   /* Check charset */
-
-   if(chrs2[0])
-   {
-      sockprintf(var,"441 Posting failed (Message contains multiple charsets, \"%s\" and \"%s\")" CRLF,chrs,chrs2);
-      os_logwrite("(%s) POST failed (Message contains multiple charsets, \"%s\" and \"%s\")",var->clientid,chrs,chrs2);
-      free(text);
-      return;
-   }
-
-   xlat=findpostxlat(var,chrs);
-
-   if(!xlat)
-   {
-      sockprintf(var,"441 Posting failed (Unsupported charset \"%s\")" CRLF,chrs);
-      os_logwrite("(%s) POST failed (Unsupported charset \"%s\")",var->clientid,chrs);
-      free(text);
-      return;
-   }
-   
    /* Check access rights */
 
    for(g=var->firstgroup;g;g=g->next)
@@ -1970,6 +1979,45 @@ void command_post(struct var *var)
       return;
    }
 
+   /* Check charset */
+
+   if(chrs2[0])
+   {
+      sockprintf(var,"441 Posting failed (Message contains multiple charsets, \"%s\" and \"%s\")" CRLF,chrs,chrs2);
+      os_logwrite("(%s) POST failed (Message contains multiple charsets, \"%s\" and \"%s\")",var->clientid,chrs,chrs2);
+      free(text);
+      return;
+   }
+
+   if(g->defaultchrs[0] == '!' || var->defaultreadchrs[0] == '!')
+   {
+      if(g->defaultchrs[0] == '!')
+         xlat=findpostxlat(var,chrs,&g->defaultchrs[1]);
+   
+      else
+         xlat=findpostxlat(var,chrs,&var->defaultreadchrs[1]);
+   
+      if(!xlat)
+      {
+         sockprintf(var,"441 Posting failed (Unsupported charset \"%s\" for area %s)" CRLF,chrs,g->tagname);
+         os_logwrite("(%s) POST failed (Unsupported charset \"%s\" for area %s)",var->clientid,chrs,g->tagname);
+         free(text);
+         return;
+      }     
+   }
+   else
+   {      
+      xlat=findpostxlat(var,chrs,NULL);
+
+      if(!xlat)
+      {
+         sockprintf(var,"441 Posting failed (Unsupported charset \"%s\")" CRLF,chrs);
+         os_logwrite("(%s) POST failed (Unsupported charset \"%s\")",var->clientid,chrs);
+         free(text);
+         return;
+      }     
+   }
+   
    /* Make JAM header */
 
    JAM_ClearMsgHeader(&Header_S);

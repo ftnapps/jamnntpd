@@ -39,7 +39,7 @@ LATIN-1
 \0	\xA2
 \0	\xA3
 \0	\xA5
-\0	?
+P	t	s
 \0	f
 \0	\xE1
 \0	\xED
@@ -50,7 +50,7 @@ LATIN-1
 \0	\xAA
 \0	\xBA
 \0	\xBF
-\0	?
+N	O	T
 \0	\xAC
 \0	\xBD
 \0	\xBC
@@ -105,34 +105,34 @@ LATIN-1
 \0	#
 \0	#
 \0	#
-\0	?
+a	l	p	h
 \0	\xDF
-\0	?
-\0	?
-\0	?
-\0	?
+G	a	m	m
+p	i
+S	i	g	m
+s	i	g	m
 \0	\xB5
-\0	?
-\0	?
-\0	?
-\0	?
-\0	?
+t	a	u
+P	h	i
+T	h	e	t
+O	m	e	g
+d	e	l	t
 i	n	f
-\0	?
-\0	?
-\0	?
+p	h	i
+e	p	s
+\0	n
 \0	=
 \0	\xB1
 >	=
 <	=
-\0	?
-\0	?
+I	n	t	e
+g	r	a	l
 \0	\xF7
-\0	?
+~	~
 \0	\xB0
-\0	?
+\0	.
 \0	\xB7
-\0	?
+s	q	r	t
 ^	n
 \0	\xB2
 \0	#

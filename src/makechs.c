@@ -29,8 +29,8 @@ struct fallback
 /* The original table can be found at http://www.cl.cam.ac.uk/~mgk25/download/transtab.tar.gz */
 
 struct fallback transtab[] = {
-/* { 0x0027, "’" },        */ /* removed, non-ascii */
-/* { 0x0060, "‛', '‘" }, */ /* removed, non-ascii */
+/* { 0x0027, "’" },        */ /* removed, is already ascii */
+/* { 0x0060, "‛', '‘" }, */   /* removed, is already ascii */
    { 0x00A0, " " },
    { 0x00A1, "!" },
    { 0x00A2, "c" },
@@ -260,19 +260,31 @@ struct fallback transtab[] = {
    { 0x021A, "T" },
    { 0x021B, "t" },
    { 0x02B9, "'" },
-/* { 0x02BB, "‘" }, */ /* removed, non-ascii */
+   { 0x02BB, "`" },  /* replaced, non-ascii */
    { 0x02BC, "'" },
-/* { 0x02BD, "‛" }, */ /* removed, non-ascii */
+   { 0x02BD, "`" },  /* replaced, non-ascii */
    { 0x02C6, "^" },
    { 0x02C8, "'" },
-/* { 0x02C9, "¯" }, */ /* removed, non-ascii */
+   { 0x02C9, "-" },  /* replaced non-ascii */
    { 0x02CC, "," },
    { 0x02D0, ":" },
-/* { 0x02DA, "°" }, */ /* removed, non-ascii */
+   { 0x02DA, "deg" }, /* replaced, non-ascii */
    { 0x02DC, "~" },
    { 0x02DD, "\"" },
    { 0x0374, "'" },
    { 0x0375, "," },
+   { 0x0393, "Gamm" }, /* added */
+   { 0x0398, "Thet" }, /* added */
+   { 0x03a3, "Sigm" }, /* added */
+   { 0x03a6, "Phi" },  /* added */
+   { 0x03a9, "Omeg" }, /* added */
+   { 0x03b1, "alph" }, /* added */
+   { 0x03b4, "delt" }, /* added */
+   { 0x03c0, "pi" },   /* added */
+   { 0x03c3, "sigm" }, /* added */
+   { 0x03c4, "tau" },  /* added */
+   { 0x03b5, "eps" },  /* added */
+   { 0x03c6, "phi" },  /* added */
    { 0x037E, ";" },
    { 0x1E02, "B" },
    { 0x1E03, "b" },
@@ -342,7 +354,7 @@ struct fallback transtab[] = {
    { 0x202D, "" },
    { 0x202E, "" },
    { 0x202F, " " },
-   { 0x2030, " 0/00" },
+   { 0x2030, "o/oo" }, /* replaced, too long */
    { 0x2032, "'" },
    { 0x2033, "\"" },
    { 0x2034, "'''" },
@@ -385,13 +397,14 @@ struct fallback transtab[] = {
    { 0x208C, "_=" },
    { 0x208D, "_(" },
    { 0x208E, "_)" },
+   { 0x20A7, "Pts" }, /* added */
    { 0x20AC, "EUR" },
    { 0x2100, "a/c" },
    { 0x2101, "a/s" },
-   { 0x2103, "oC"  }, /* replaced, non-ascii */
+   { 0x2103, "degC"  }, /* replaced, non-ascii */
    { 0x2105, "c/o" },
    { 0x2106, "c/u" },
-   { 0x2109, "oF"  }, /* replaced, non-ascii */
+   { 0x2109, "degF"  }, /* replaced, non-ascii */
    { 0x2113, "l" },
    { 0x2116, "No" },
    { 0x2117, "(P)" },
@@ -460,12 +473,15 @@ struct fallback transtab[] = {
    { 0x2216, "\\" },
    { 0x2217, "*" },
    { 0x2218, "o" },
-/* { 0x2219, "·" }, */ /* removed, non-ascii */
+   { 0x2219, "." },    /* replaced, non-ascii */
+   { 0x221a, "sqrt" }, /* added */
    { 0x221E, "inf" },
    { 0x2223, "|" },
    { 0x2225, "||" },
+   { 0x2229, "n" }, /* added */
    { 0x2236, ":" },
    { 0x223C, "~" },
+   { 0x2248, "~~" }, /* added */
    { 0x2260, "/=" },
    { 0x2261, "=" },
    { 0x2264, "<=" },
@@ -482,12 +498,15 @@ struct fallback transtab[] = {
    { 0x22A7, "|=" },
    { 0x22A8, "|=" },
    { 0x22A9, "||-" },
-/* { 0x22C5, "·" }, */ /* removed, non-ascii */
+   { 0x22C5, "." }, /* replaced, non-ascii */
    { 0x22C6, "*" },
    { 0x22D5, "#" },
    { 0x22D8, "<<<" },
    { 0x22D9, ">>>" },
    { 0x22EF, "..." },
+   { 0x2310, "NOT" }, /* added */
+   { 0x2320, "Inte" }, /* added */
+   { 0x2321, "gral" }, /* added */
    { 0x2329, "<" },
    { 0x232A, ">" },
    { 0x2400, "NUL" },
@@ -1132,6 +1151,8 @@ int main(int argc, char **argv)
 
                if(transtab[d].u)
                {
+                  fprintf(stderr,"Warning: Unicode %04x not found in target charset, using fallback \"%s\"\n",uc,transtab[d].str);
+               
                   if(strlen(transtab[d].str) == 1)
                   {
                      printbyte(0); 
@@ -1151,6 +1172,8 @@ int main(int argc, char **argv)
                }
                else
                {
+                  fprintf(stderr,"Warning: Unicode %04x not found in target charset, no fallback found\n",uc);
+                  
                   printbyte(0);
                   printf("\t");
                   printbyte('?');

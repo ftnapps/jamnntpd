@@ -14,9 +14,9 @@ int main(int argc, char **argv)
            /*          1         2         3         4         5         6         7         8 */
            /* 12345678901234567890123456789012345678901234567890123456789012345678901234567890 */     
       printf("Usage: jamnntpd [-debug] [-noecholog] [-nostripre] [-notearline]\n"
-             "                [-noreplyaddr] [-smartquote] [-noencode] [-keepsoftcr]\n"
-             "                [-notzutc] [-p <port>] [-m <maxconn>] [-def_flowed on/off]\n"
-             "                [-def_showto on/off] [-origin <origin>] [-guestsuffix <suffix>]\n"
+             "                [-noreplyaddr] [-smartquote] [-noencode] [-notzutc] [-p <port>]\n"
+             "                [-m <maxconn>] [-def_flowed on/off] [-def_showto on/off]\n"
+             "                [-origin <origin>] [-guestsuffix <suffix>]\n"
              "                [-echomailjam <echomail.jam> [-g <groupsfile>] [-a <allowfile>]\n"
              "                [-u <usersfile>] [-x <xlatfile>] [-l <logfile>]\n");
 
@@ -52,10 +52,6 @@ int main(int argc, char **argv)
       else if(stricmp(argv[c],"-noencode")==0)
       {
          cfg_noencode=TRUE;
-      }
-      else if(stricmp(argv[c],"-keepsoftcr")==0)
-      {
-         cfg_keepsoftcr=TRUE;
       }
       else if(stricmp(argv[c],"-notzutc")==0)
       {

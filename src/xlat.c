@@ -278,8 +278,10 @@ bool matchcharset(uchar *pat,uchar *chrs,uchar *codepage)
       /* Match chrs and codepage */
       
       mystrncpy(buf,pat,20);
-      *strchr(buf,',')=0;
-
+      
+      if(strchr(buf,','))
+         *strchr(buf,',')=0;
+         
       mystrncpy(buf2,strchr(pat,',')+1,20);
 
       if(matchpattern(buf,chrs) && matchpattern(buf2,codepage))
@@ -300,7 +302,9 @@ void setchrscodepage(uchar *chrs,uchar *codepage,uchar *str)
    if(strchr(str,','))
    {
       mystrncpy(chrs,str,20);
-      *strchr(chrs,',')=0;
+      
+      if(strchr(chrs,','))
+         *strchr(chrs,',')=0;
 
       mystrncpy(codepage,strchr(str,',')+1,20);
    }
@@ -360,7 +364,7 @@ struct xlat *findreadxlat(struct var *var,struct group *group,uchar *ichrs,uchar
    return(xlat);
 }
 
-struct xlat *findpostxlat(struct var *var,uchar *ichrs)
+struct xlat *findpostxlat(struct var *var,uchar *ichrs,uchar *destpat)
 {
    uchar chrs[20];
    struct xlat *xlat;
@@ -383,18 +387,26 @@ struct xlat *findpostxlat(struct var *var,uchar *ichrs)
       
    /* Find in list */
       
-   for(xlat=var->firstpostxlat;xlat;xlat=xlat->next)
-      if(matchpattern(xlat->fromchrs,chrs)) break;
-   
+   if(destpat)
+   {
+      for(xlat=var->firstpostxlat;xlat;xlat=xlat->next)
+         if(matchpattern(xlat->fromchrs,chrs) && matchpattern(destpat,xlat->tochrs)) break;
+   }
+   else
+   {
+      for(xlat=var->firstpostxlat;xlat;xlat=xlat->next)
+         if(matchpattern(xlat->fromchrs,chrs)) break;
+   }
+         
    return(xlat);
 }
 
 bool readxlat(struct var *var)
 {
    FILE *fp;
-   uchar s[1000],type[20],fromchrs[100],tochrs[100],filename[100];
+   uchar s[1000],type[20],fromchrs[100],tochrs[100],filename[100],option[100];
    uchar basename[100],fullfilename[250];
-   bool res1,res2,res3,res4;
+   bool res1,res2,res3,res4,res5;
    ulong pos,line;
    struct xlat *newxlat,*lastreadxlat,*lastpostxlat;
    struct xlatalias *newxlatalias, *lastreadalias,*lastpostalias;
@@ -433,6 +445,7 @@ bool readxlat(struct var *var)
          res2=getcfgword(s,&pos,fromchrs,100);
          res3=getcfgword(s,&pos,tochrs,100);
          res4=getcfgword(s,&pos,filename,100);
+         res5=getcfgword(s,&pos,option,100);
 
          if(stricmp(type,"chsdir")==0 && res2)
          {
@@ -513,7 +526,8 @@ bool readxlat(struct var *var)
                mystrncpy(newxlat->tochrs,tochrs,20);
 
                newxlat->xlattab=NULL;
-
+               newxlat->keepsoftcr=FALSE;
+               
                if(res4)
                {
                   strcpy(fullfilename,basename);
@@ -536,6 +550,18 @@ bool readxlat(struct var *var)
                   else
                   {
                      newxlat->xlattab=readchs(var,fullfilename);
+                  }
+               }
+               
+               if(res5)
+               {
+                  if(stricmp(option,"-keepsoftcr")==0)
+                  {
+                     newxlat->keepsoftcr=TRUE;
+                  }
+                  else
+                  {
+                     os_logwrite("(%s) Warning: Unknown option %s on line %lu in %s",var->clientid,option,line,cfg_xlatfile);
                   }
                }
             }

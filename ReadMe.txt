@@ -42,9 +42,9 @@ Linux, you should avoid running it with root privileges.
 4.1 Command-line options
 ------------------------
 Usage: jamnntpd [-debug] [-noecholog] [-nostripre] [-notearline]
-                [-noreplyaddr] [-smartquote] [-noencode] [-keepsoftcr]
-                [-notzutc] [-p <port>] [-m <maxconn>] [-def_flowed on/off]
-                [-def_showto on/off] [-origin <origin>] [-guestsuffix <suffix>]
+                [-noreplyaddr] [-smartquote] [-noencode] [-notzutc] [-p <port>]
+                [-m <maxconn>] [-def_flowed on/off] [-def_showto on/off]
+                [-origin <origin>] [-guestsuffix <suffix>]
                 [-echomailjam <echomail.jam> [-g <groupsfile>] [-a <allowfile>]
                 [-u <usersfile>] [-x <xlatfile>] [-l <logfile>]
 
@@ -93,11 +93,6 @@ Usage: jamnntpd [-debug] [-noecholog] [-nostripre] [-notearline]
 
    JamNNTPd by default MIME-encodes headers with non-ascii characters. If you
    use this option, JamNNTPd will instead send the headers as plain 8-bit text.
-
- -keepsoftcr
-
-   JamNNTPd by default removes the "Soft CR" (0x8d) character from message
-   bodies. Use this option to disable that behaviour.
 
  -notzutc
 

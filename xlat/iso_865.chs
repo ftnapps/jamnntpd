@@ -18,7 +18,7 @@ E	U	R              ; windows-1252 extension
 \0	+                      ; windows-1252 extension
 +	+                      ; windows-1252 extension
 \0	^ 	               ; windows-1252 extension
-0	/	0	0      ; windows-1252 extension
+o	/	o	o      ; windows-1252 extension
 \0	S                      ; windows-1252 extension
 \0	<                      ; windows-1252 extension
 O	E                      ; windows-1252 extension

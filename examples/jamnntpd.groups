@@ -6,10 +6,11 @@
 #
 # The default charset (optional) is the assumed charset when no CHRS or
 # CODEPAGE line is found. If the default chrs begins with a "!" character,
-# it will be used regardless of the contents of the CHRS and CODEPAGE line.
+# the "force" mode is activated for that group. In "force" mode, the 
+# specified charset is used regardless of the contents of the CHRS and 
+# CODEPAGE lines and messages can only be posted in charsets that can 
+# be translated to the forced character set.
 
-NETMAIL               X 2:205/454.77 c:\fido\areas\NETMAIL
-BAD                   X 2:205/454.77 c:\fido\areas\BAD
 R20_TEKNISKT_RASERI   A 2:205/454.77 c:\fido\areas\R20_TEKNISKT_RASERI
 R20_AMIGA             A 2:205/454.77 c:\fido\areas\R20_AMIGA             LATIN-1
 RU.COMP.HUMOR         A 2:205/454.77 c:\fido\areas\RU.COMP.HUMOR         !CP866
