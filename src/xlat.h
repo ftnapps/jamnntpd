@@ -10,8 +10,8 @@ struct xlat
    struct xlat *next;
    uchar fromchrs[20];
    uchar tochrs[20];
-   bool keepsoftcr;
    struct xlattab *xlattab;
+   bool keepsoftcr;
 };
 
 struct xlatalias

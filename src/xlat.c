@@ -404,9 +404,9 @@ struct xlat *findpostxlat(struct var *var,uchar *ichrs,uchar *destpat)
 bool readxlat(struct var *var)
 {
    FILE *fp;
-   uchar s[1000],type[20],fromchrs[100],tochrs[100],filename[100],option[100];
+   uchar s[1000],type[20],fromchrs[100],tochrs[100],option[100];
    uchar basename[100],fullfilename[250];
-   bool res1,res2,res3,res4,res5;
+   bool res1,res2,res3;
    ulong pos,line;
    struct xlat *newxlat,*lastreadxlat,*lastpostxlat;
    struct xlatalias *newxlatalias, *lastreadalias,*lastpostalias;
@@ -444,8 +444,6 @@ bool readxlat(struct var *var)
          res1=getcfgword(s,&pos,type,20);
          res2=getcfgword(s,&pos,fromchrs,100);
          res3=getcfgword(s,&pos,tochrs,100);
-         res4=getcfgword(s,&pos,filename,100);
-         res5=getcfgword(s,&pos,option,100);
 
          if(stricmp(type,"chsdir")==0 && res2)
          {
@@ -493,42 +491,42 @@ bool readxlat(struct var *var)
             mystrncpy(newxlatalias->pattern,fromchrs,20);
             mystrncpy(newxlatalias->replace,tochrs,20);
          }
-         else if(res1 && res2 && res3) /* xlattab is optional */
+         else if(stricmp(type,"post") == 0 || stricmp(type,"read") == 0)
          {
-            if(stricmp(type,"post") != 0 && stricmp(type,"read") != 0)
+            if(!(newxlat=(struct xlat *)malloc(sizeof(struct xlat))))
             {
-               os_logwrite("(%s) Syntax error on line %lu in %s",var->clientid,line,cfg_xlatfile);
+               fclose(fp);
+               return(FALSE);
+            }
+
+            newxlat->next=NULL;
+
+            if(stricmp(type,"post")==0)
+            {
+               if(!var->firstpostxlat) var->firstpostxlat=newxlat;
+               if(lastpostxlat) lastpostxlat->next=newxlat;
+               lastpostxlat=newxlat;
             }
             else
             {
-               if(!(newxlat=(struct xlat *)malloc(sizeof(struct xlat))))
-               {
-                  fclose(fp);
-                  return(FALSE);
-               }
+               if(!var->firstreadxlat) var->firstreadxlat=newxlat;
+               if(lastreadxlat) lastreadxlat->next=newxlat;
+               lastreadxlat=newxlat;
+            }
 
-               newxlat->next=NULL;
+            mystrncpy(newxlat->fromchrs,fromchrs,20);
+            mystrncpy(newxlat->tochrs,tochrs,20);
 
-               if(stricmp(type,"post")==0)
-               {
-                  if(!var->firstpostxlat) var->firstpostxlat=newxlat;
-                  if(lastpostxlat) lastpostxlat->next=newxlat;
-                  lastpostxlat=newxlat;
-               }
-               else
-               {
-                  if(!var->firstreadxlat) var->firstreadxlat=newxlat;
-                  if(lastreadxlat) lastreadxlat->next=newxlat;
-                  lastreadxlat=newxlat;
-               }
-
-               mystrncpy(newxlat->fromchrs,fromchrs,20);
-               mystrncpy(newxlat->tochrs,tochrs,20);
-
-               newxlat->xlattab=NULL;
-               newxlat->keepsoftcr=FALSE;
+            newxlat->xlattab=NULL;
+            newxlat->keepsoftcr=FALSE;
                
-               if(res4)
+            while(getcfgword(s,&pos,option,100))
+            {
+               if(stricmp(option,"-keepsoftcr")==0)
+               {
+                  newxlat->keepsoftcr=TRUE;
+               }
+               else if(option[0] != '-' && !newxlat->xlattab)
                {
                   strcpy(fullfilename,basename);
 
@@ -538,31 +536,20 @@ bool readxlat(struct var *var)
                         strcat(fullfilename,"/");
                   }
 
-                  strcat(fullfilename,filename);
+                  strcat(fullfilename,option);
 
                   for(xlattab=var->firstxlattab;xlattab;xlattab=xlattab->next)
                      if(strcmp(xlattab->filename,fullfilename)==0) break;
 
                   if(xlattab)
-                  {
                      newxlat->xlattab=xlattab;
-                  }
+                  
                   else
-                  {
                      newxlat->xlattab=readchs(var,fullfilename);
-                  }
                }
-               
-               if(res5)
+               else
                {
-                  if(stricmp(option,"-keepsoftcr")==0)
-                  {
-                     newxlat->keepsoftcr=TRUE;
-                  }
-                  else
-                  {
-                     os_logwrite("(%s) Warning: Unknown option %s on line %lu in %s",var->clientid,option,line,cfg_xlatfile);
-                  }
+                  os_logwrite("(%s) Warning: Unknown option %s on line %lu in %s",var->clientid,option,line,cfg_xlatfile);
                }
             }
          }

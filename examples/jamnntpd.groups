@@ -2,7 +2,7 @@
 #
 # Syntax:
 #
-# <tagname> <access group> <aka> <jampath> [<default chrs>]
+# <tagname> <access group> <aka> <jampath> [<default chrs>] [-nochrs]
 #
 # The default charset (optional) is the assumed charset when no CHRS or
 # CODEPAGE line is found. If the default chrs begins with a "!" character,
@@ -10,6 +10,9 @@
 # specified charset is used regardless of the contents of the CHRS and 
 # CODEPAGE lines and messages can only be posted in charsets that can 
 # be translated to the forced character set.
+#
+# If -nochrs is specified, no CHRS will be created when messages are
+# posted in this area.
 
 R20_TEKNISKT_RASERI   A 2:205/454.77 c:\fido\areas\R20_TEKNISKT_RASERI
 R20_AMIGA             A 2:205/454.77 c:\fido\areas\R20_AMIGA             LATIN-1

@@ -5,7 +5,7 @@
 
                             (billing@df.lth.se)
 
-                                2004-07-12
+                                2004-07-17
 
 1. Introduction
 ===============
@@ -272,13 +272,13 @@ JamNNTPd uses format=flowed unless disabled with the -def_flowed switch or
 with login parameters, and it is preferable to use a newsreader that also 
 supports this format. Unfortunately, only few newsreaders support this format 
 today. JamNNTPd will also work with other newsreaders, but messages will look 
-slighty worse both on the NNTP and fidonet side.
+slightly worse both on the NNTP and fidonet side.
 
 6.6 Character set translation
 -----------------------------
 JamNNTPd has good support for character sets. The character set translation
-are configured in the "xlat" file and uses CHS files in the GoldED+ format for
-the actual translation. Extendended CHS files with 256 character translations
+is configured in the "xlat" file and uses CHS files in the GoldED+ format for
+the actual translation. Extended CHS files with 256 character translations
 are supported and a character may be translated to up to four characters.
 
 6.7 Tested newsreaders
@@ -344,5 +344,4 @@ Here are some improvements that maybe ought to be done:
 
 But it is pointless for me to spend time on these improvements unless someone
 out there needs them, because I don't.
-
 

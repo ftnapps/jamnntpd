@@ -1596,7 +1596,7 @@ void command_post(struct var *var)
    bool finished,toobig;
    uchar from[100],fromaddr[100],toname[100],subject[100],organization[100],newsgroup[100];
    uchar contenttype[100],contenttransferencoding[100],reference[100],newsreader[100];
-   uchar msgid[100],replyid[100],replyto[100],chrs[20],chrs2[20],codepage[20],timezone[13];
+   uchar msgid[100],replyid[100],replyto[100],chrs[20],chrs2[20],codepage[20],timezone[13],control[100];
    struct group *g;
    struct xlat *xlat;
    s_JamSubPacket*	SubPacket_PS;
@@ -1673,6 +1673,7 @@ void command_post(struct var *var)
    reference[0]=0;
    organization[0]=0;
    newsreader[0]=0;
+   control[0]=0;
    flowed=FALSE;
 
    textpos=0;
@@ -1817,6 +1818,10 @@ void command_post(struct var *var)
       {
          unmimecpy(newsreader,&line[12],100,chrs,chrs2,20);
       }
+      else if(strnicmp(line,"Control: ",9)==0)
+      {
+         mystrncpy(control,&line[9],100);
+      }
       else if(line[0] == 0)
       {
          finished=TRUE; /* End of headers */
@@ -1869,6 +1874,14 @@ void command_post(struct var *var)
       return;
    }
 
+   if(strnicmp(control,"cancel ",7)==0)
+   {
+      sockprintf(var,"441 Posting failed (Cancel messages are not supported)" CRLF);
+      os_logwrite("(%s) POST failed (Cancel messages are not supported)",var->clientid);
+      free(text);
+      return;
+   }
+   
    /* Decode message */
    
    if(stricmp(contenttransferencoding,"quoted-printable")==0)
@@ -2147,7 +2160,7 @@ void command_post(struct var *var)
    strcpy(line,SERVER_NAME " " SERVER_PIDVERSION);
    addjamfield(SubPacket_PS,JAMSFLD_PID,line);
 
-   if(xlat->tochrs[0])
+   if(xlat->tochrs[0] && !g->nochrs)
    {
       setchrscodepage(chrs,codepage,xlat->tochrs);
       
@@ -2631,9 +2644,7 @@ void server(SOCKET s)
 
    om man inplar netmail:
 
-   jamgetminmaxnum() s”ker efter toname f”r att s„tta min och max
-
-   command_abhs och command_xover() kollar toname
+   command_abhs och command_xover() kollar toname/fromname
 
    command_post anv„nder en rad f”rst i meddelanden: "To: namn,adress".
    rejectar mails som saknar den h„r raden.
@@ -2643,9 +2654,14 @@ void server(SOCKET s)
 
    config i usersfil
 
-   wbunaarf password   A    A     Johannes Nilsson,wbunaarf
-   billing  password   A    AX    *
+   wbunaarf password   A    A     "Johannes Nilsson,wbunaarf"
+   billing  password   A    AX    "Johan Billing,*"
 
+   om man inte uppdaterar jamgetminmaxnum() till att söka efter toname/fromname 
+   för att sätta min och max, vad händer då om det kommer nya texter som inte är
+   till en själv? toname går bra, men det är svårt att söka efer fromname på ett 
+   snabbt sätt.
+   
 */
 
 
