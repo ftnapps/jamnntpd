@@ -8,5 +8,7 @@ bool matchpattern(uchar *pat,uchar *ip);
 void stripctrl(uchar *str);
 ulong count8bit(uchar *text);
 void freelist(void *first);
-
+bool ispattern(uchar *pat);
+bool getcomma(uchar *line, ulong *pos, uchar *dest, ulong destlen);
+bool matchname(uchar *namelist,uchar *name);
 

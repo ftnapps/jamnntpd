@@ -47,7 +47,7 @@ struct var
 
    uchar loginname[100];
    uchar password[100];
-   uchar dispname[36];
+   uchar realnames[36];
    
    bool opt_flowed;
    bool opt_showto;
@@ -70,8 +70,8 @@ struct var
 #define CRLF CR LF
 
 #define SERVER_NAME       "JamNNTPd/" PLATFORM_NAME
-#define SERVER_VERSION    "0.6"
-#define SERVER_PIDVERSION "0.6"
+#define SERVER_VERSION    "1.0b"
+#define SERVER_PIDVERSION "1/b"
 
 #define SOCKIO_TIMEOUT 5*60
 
@@ -118,6 +118,7 @@ extern bool cfg_noreplyaddr;
 extern bool cfg_smartquote;
 extern bool cfg_noencode;
 extern bool cfg_notzutc;
+extern bool cfg_nocancel;
 
 extern bool cfg_def_flowed;
 extern bool cfg_def_showto;

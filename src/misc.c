@@ -114,6 +114,47 @@ bool getcfgword(uchar *line, ulong *pos, uchar *dest, ulong destlen)
    return(TRUE);
 }
 
+bool getcomma(uchar *line, ulong *pos, uchar *dest, ulong destlen)
+{
+   ulong c,d;
+
+   c=*pos;
+   d=0;
+
+   for(;;)
+   {
+      if(line[c] == 0 || line[c] == ',')
+      {
+         if(line[c] != 0) c++;
+         *pos=c;
+         dest[d]=0;
+
+         if(dest[0]) return(TRUE);
+         else        return(FALSE);
+      }
+      else
+      {
+         if(d < destlen-1)
+            dest[d++]=line[c];
+      }
+
+      c++;
+   }
+}
+
+bool matchname(uchar *namelist,uchar *name)
+{
+   uchar namepat[100];
+   ulong count;
+   
+   count=0;
+      
+   while(getcomma(namelist,&count,namepat,100))
+      if(matchpattern(namepat,name)) return(TRUE);
+   
+   return(FALSE);
+}   
+
 bool matchgroup(uchar *groups,uchar group)
 {
    int c;
@@ -139,14 +180,26 @@ bool matchpattern(uchar *pat,uchar *str)
       if(pat[c]=='*')
          return(TRUE);
 
-      if(tolower(str[c]) != tolower(pat[c]))
-         return(FALSE);
+      if(pat[c]!='?')
+      {
+         if(tolower(str[c]) != tolower(pat[c]))
+            return(FALSE);
+      }
    }
 
    if(str[c])
       return(FALSE);
 
    return(TRUE);
+}
+
+bool ispattern(uchar *pat)
+{
+   if(strchr(pat,'*'))
+      return(TRUE);
+   
+   else
+      return(FALSE);
 }
 
 void stripctrl(uchar *str)

@@ -45,7 +45,17 @@ bool readgroups(struct var *var)
             if(lastgroup) lastgroup->next=newgroup;
             lastgroup=newgroup;
 
-            strcpy(newgroup->tagname,tagname);
+            if(tagname[0] == '!')
+            {
+               newgroup->netmail=TRUE;
+               strcpy(newgroup->tagname,&tagname[1]);
+            }
+            else
+            {
+               newgroup->netmail=FALSE;
+               strcpy(newgroup->tagname,tagname);
+            }
+            
             newgroup->group=group[0];
             strcpy(newgroup->aka,aka);
             strcpy(newgroup->jampath,jampath);

@@ -1,5 +1,5 @@
 
-                               JamNNTPd 0.6
+                               JamNNTPd 1.0
 
                              by Johan Billing
 
@@ -41,7 +41,7 @@ Linux, you should avoid running it with root privileges.
 
 4.1 Command-line options
 ------------------------
-Usage: jamnntpd [-debug] [-noecholog] [-nostripre] [-notearline]
+Usage: jamnntpd [-debug] [-noecholog] [-nostripre] [-notearline] [-nocancel]
                 [-noreplyaddr] [-smartquote] [-noencode] [-notzutc] [-p <port>]
                 [-m <maxconn>] [-def_flowed on/off] [-def_showto on/off]
                 [-origin <origin>] [-guestsuffix <suffix>]
@@ -68,6 +68,12 @@ Usage: jamnntpd [-debug] [-noecholog] [-nostripre] [-notearline]
    header field in the tearline of posted messages. This option disables this
    behaviour and leaves the tearline blank.
 
+ -nocancel
+ 
+   Disallows the cancelling (deleting) of messages by the users. If allowed,
+   users can only cancel messages from one of their "realnames" and only if
+   the message has not yet been sent.
+   
  -noreplyaddr
 
    JamNNTPd normally adds a REPLYADDR kludge with the e-mail address of the
@@ -139,7 +145,7 @@ Usage: jamnntpd [-debug] [-noecholog] [-nostripre] [-notearline]
  -echomailjam <echomail.jam>
  
    If you specify a filename here, JamNNTPd will write a line to this file 
-   with the messagebase and message number of each message that is posted.
+   with the messagebase and message number for each message that is posted.
    The file follows the ECHOMAIL.JAM format supported by some tossers. 
     
  -g <groupsfile>
@@ -281,7 +287,22 @@ is configured in the "xlat" file and uses CHS files in the GoldED+ format for
 the actual translation. Extended CHS files with 256 character translations
 are supported and a character may be translated to up to four characters.
 
-6.7 Tested newsreaders
+6.7 Netmail
+-----------
+JamNNTPd now also supports netmail. In netmail areas, users can only read
+messages to or from one of the names configured in the jamnntpd.users file.
+Replies to netmails are handled transparently and the name and address of
+the recipient are taken from the original message. When a user wants to write
+a new netmail, the name and address of the recipient are specified on the
+first line of the new message using this format:
+
+ To: name,address
+ 
+Example:
+
+ To: Johan Billing, 2:15/87
+ 
+6.8 Tested newsreaders
 ----------------------
 JamNNTPd has been found to work with the following newsreaders:
 
@@ -334,14 +355,4 @@ Examples:
  
 Mappings files for all imaginable character sets can be found at the Unicode 
 site above.
-
-8. Todo
-=======
-Here are some improvements that maybe ought to be done:
-
- * A configuration file instead of lots of commandline switches
- * Netmail handling
-
-But it is pointless for me to spend time on these improvements unless someone
-out there needs them, because I don't.
 

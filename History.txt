@@ -1,3 +1,9 @@
+Changes in version 1.0
+
+ - Added support for netmail
+ 
+ - Added support for cancel messages
+  
 Changes in version 0.6
 
  - Configurable charset handling based on CHS files in the GoldED+ format. 

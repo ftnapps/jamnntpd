@@ -13,7 +13,7 @@ int main(int argc, char **argv)
 
            /*          1         2         3         4         5         6         7         8 */
            /* 12345678901234567890123456789012345678901234567890123456789012345678901234567890 */     
-      printf("Usage: jamnntpd [-debug] [-noecholog] [-nostripre] [-notearline]\n"
+      printf("Usage: jamnntpd [-debug] [-noecholog] [-nostripre] [-notearline] [-nocancel]\n"
              "                [-noreplyaddr] [-smartquote] [-noencode] [-notzutc] [-p <port>]\n"
              "                [-m <maxconn>] [-def_flowed on/off] [-def_showto on/off]\n"
              "                [-origin <origin>] [-guestsuffix <suffix>]\n"
@@ -40,6 +40,10 @@ int main(int argc, char **argv)
       else if(stricmp(argv[c],"-notearline")==0)
       {
          cfg_notearline=TRUE;
+      }
+      else if(stricmp(argv[c],"-nocancel")==0)
+      {
+         cfg_nocancel=TRUE;
       }
       else if(stricmp(argv[c],"-noreplyaddr")==0)
       {
