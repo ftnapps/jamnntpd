@@ -1,0 +1,10 @@
+# Groups configuration for JamNNTPd
+#
+# Syntax:
+#
+# <tagname> <access group> <aka> <jampath>
+#
+NETMAIL               X 2:205/454.77 c:\fido\areas\NETMAIL
+BAD                   X 2:205/454.77 c:\fido\areas\BAD
+R20_TEKNISKT_RASERI   A 2:205/454.77 c:\fido\areas\R20_TEKNISKT_RASERI
+R20_KURIOSA           A 2:205/454.77 c:\fido\areas\R20_KURIOSA

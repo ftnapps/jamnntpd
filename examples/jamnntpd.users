@@ -1,0 +1,8 @@
+# User configuration file for JamNNTd
+#
+# Syntax:
+#
+# <username> <password> <readgroups> <postgroups>
+#
+billing  password        AX    AX
+

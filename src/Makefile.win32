@@ -1,0 +1,46 @@
+# Makefile for Linux
+
+# General
+
+PLATFORMDEF = -DPLATFORM_WIN32
+EXESUFFIX = .exe
+
+CC = gcc $(DEFS) -Wall
+RM = del
+STRIP = strip
+
+OBJS = main.o nntpserv.o os_win32.o sockio.o groups.o misc.o xlat.o allow.o login.o
+
+jamnntpd : $(OBJS)
+	$(CC) -o jamnntpd$(EXESUFFIX) $(OBJS) jamlib/jamlib.a -lwsock32
+	$(STRIP) jamnntpd$(EXESUFFIX)
+	
+nntpserv.o : nntpserv.c 
+	$(CC) $(PLATFORMDEF) -c nntpserv.c -o nntpserv.o
+	
+os_win32.o : os_win32.c 
+	$(CC) $(PLATFORMDEF) -c os_win32.c -o os_win32.o
+
+main.o : main.c 
+	$(CC) $(PLATFORMDEF) -c main.c -o main.o
+
+sockio.o : sockio.c 
+	$(CC) $(PLATFORMDEF) -c sockio.c -o sockio.o
+
+groups.o : groups.c 
+	$(CC) $(PLATFORMDEF) -c groups.c -o groups.o
+
+misc.o : misc.c 
+	$(CC) $(PLATFORMDEF) -c misc.c -o misc.o
+
+xlat.o : xlat.c 
+	$(CC) $(PLATFORMDEF) -c xlat.c -o xlat.o
+
+allow.o : allow.c 
+	$(CC) $(PLATFORMDEF) -c allow.c -o allow.o
+
+login.o : login.c 
+	$(CC) $(PLATFORMDEF) -c login.c -o login.o
+
+clean : 
+	$(RM) *.o
