@@ -103,7 +103,6 @@ bool jamopenarea(struct var *var,struct group *group)
       JAM_CloseMB(var->openmb);
       free(var->openmb);
       var->openmb=NULL;
-      var->opengroup=NULL;
    }
 
    if(JAM_OpenMB(group->jampath,&var->openmb))
@@ -112,7 +111,6 @@ bool jamopenarea(struct var *var,struct group *group)
       {
          free(var->openmb);
          var->openmb=NULL;
-         var->opengroup=NULL;
       }
       
       os_logwrite("(%s) Failed to open JAM messagebase \"%s\"",var->clientid,group->jampath);
@@ -795,8 +793,8 @@ void command_abhs(struct var *var,uchar *cmd)
 
    if(stricmp(cmd,"ARTICLE") == 0 || stricmp(cmd,"HEAD") == 0)
    {
-      if(replyaddr) strcpy(fromaddr,replyaddr);
-      else          strcpy(fromaddr,jamfromaddr);
+      if(replyaddr[0]) strcpy(fromaddr,replyaddr);
+      else             strcpy(fromaddr,jamfromaddr);
             
       if(fromaddr[0] == 0) strcpy(fromaddr,"unknown");
       if(fromname[0] == 0) strcpy(fromname,"unknown");
@@ -2351,13 +2349,16 @@ void command_post(struct var *var)
       
       strip(toname);
       strip(toaddr);
-               
-      if((xlatres=xlatstr(toname,xlat->xlattab)))
+
+      if(xlat->xlattab)
       {
-         mystrncpy(toname,xlatres,36);
-         free(xlatres);
+         if((xlatres=xlatstr(toname,xlat->xlattab)))
+         {
+            mystrncpy(toname,xlatres,36);
+            free(xlatres);
+         }
       }
-   }   
+   }
    else if(reference[0])
    {
       getparentmsgidfromnum(var,reference,g->tagname,replyid,toname,toaddr,&parentmsg,xlat);
