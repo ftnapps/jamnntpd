@@ -1,26 +1,10 @@
 #include "nntpserv.h"
 
-bool compareip(uchar *ip,uchar *pat)
-{
-   int c;
-
-   for(c=0;pat[c];c++)
-   {
-      if(pat[c]=='*')
-         return(TRUE);
-
-      if(ip[c] != pat[c])
-         return(FALSE);
-   } 
-
-   return(TRUE);
-}
-
-bool checkallow(struct var *var,uchar *str)
+bool checkallow(struct var *var,uchar *ip)
 {
    FILE *fp;
-   uchar s[1000];
-   long c,d;
+   uchar s[1000],cfgip[100],cfgreadgroups[50],cfgpostgroups[50];
+   ulong pos;
 
    if(!(fp=fopen(cfg_allowfile,"r")))
    {
@@ -31,21 +15,18 @@ bool checkallow(struct var *var,uchar *str)
    while(fgets(s,999,fp))
    {
       strip(s);
+      pos=0;
 
       if(s[0]!=0 && s[0]!='#')
       {
-         for(c=0;!isspace(s[c]) && s[c]!=0;c++);
-         if(isspace(s[c])) s[c++]=0;
-         while(isspace(s[c])) c++;
+         getcfgword(s,&pos,cfgip,100);
+         getcfgword(s,&pos,cfgreadgroups,50);
+         getcfgword(s,&pos,cfgpostgroups,50);
 
-         for(d=c;!isspace(s[d]) && s[d]!=0;d++);
-         if(isspace(s[d])) s[d++]=0;
-         while(isspace(s[d]))  d++;
-
-         if(compareip(str,s))
+         if(matchpattern(cfgip,ip))
          {
-            mystrncpy(var->readgroups,&s[c],50);
-            mystrncpy(var->postgroups,&s[d],50);
+            strcpy(var->readgroups,cfgreadgroups);
+            strcpy(var->postgroups,cfgpostgroups);
 
             fclose(fp);
             return(TRUE);

@@ -3,13 +3,13 @@
 # General
 
 PLATFORMDEF = -DPLATFORM_LINUX
-EXESUFFIX = 
+EXESUFFIX =
 
 CC = gcc $(DEFS) -Wall
 RM = rm -f
 STRIP = strip
 
-OBJS = main.o nntpserv.o os_linux.o sockio.o groups.o misc.o xlat.o allow.o login.o
+OBJS = main.o nntpserv.o os_linux.o sockio.o groups.o misc.o xlat.o allow.o login.o mime.o
 
 jamnntpd : $(OBJS)
 	$(CC) -o jamnntpd$(EXESUFFIX) $(OBJS) jamlib/jamlib.a -lpthread
@@ -41,6 +41,9 @@ allow.o : allow.c
 
 login.o : login.c 
 	$(CC) $(PLATFORMDEF) -c login.c -o login.o
+
+mime.o : mime.c
+	$(CC) $(PLATFORMDEF) -c mime.c -o mime.o
 
 clean :
 	$(RM) *.o

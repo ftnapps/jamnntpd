@@ -9,7 +9,7 @@ CC = gcc $(DEFS) -Wall
 RM = del
 STRIP = strip
 
-OBJS = main.o nntpserv.o os_win32.o sockio.o groups.o misc.o xlat.o allow.o login.o
+OBJS = main.o nntpserv.o os_win32.o sockio.o groups.o misc.o xlat.o allow.o login.o mime.o
 
 jamnntpd : $(OBJS)
 	$(CC) -o jamnntpd$(EXESUFFIX) $(OBJS) jamlib/jamlib.a -lwsock32
@@ -39,8 +39,11 @@ xlat.o : xlat.c
 allow.o : allow.c 
 	$(CC) $(PLATFORMDEF) -c allow.c -o allow.o
 
-login.o : login.c 
+login.o : login.c
 	$(CC) $(PLATFORMDEF) -c login.c -o login.o
 
-clean : 
+mime.o : mime.c
+	$(CC) $(PLATFORMDEF) -c mime.c -o mime.o
+
+clean :
 	$(RM) *.o

@@ -1,11 +1,12 @@
 
-                               JamNNTPd 0.5
+                               JamNNTPd 0.6
 
                              by Johan Billing
 
                             (billing@df.lth.se)
 
-                                2003-12-06
+                                2003-12-20
+
 1. Introduction
 ===============
 JamNNTPd is an attempt to merge dying fidonet technology with modern Usenet
@@ -40,10 +41,12 @@ Linux, you should avoid running it with root privileges.
 
 4.1 Command-line options
 ------------------------
-Usage: jamnntpd [-debug] [-noecholog] [-noxlat] [-nostripre] [-notearline]
-                [-noreplyaddr] [-smartquote] [-p <port>] [-m <maxconn>]
-                [-def_flowed on/off] [-def_showto on/off] [-g <groupsfile>]
-                [-a <allowfile>] [-u <usersfile>] [-l <logfile>]
+Usage: jamnntpd [-debug] [-noecholog] [-nostripre] [-notearline]
+                [-noreplyaddr] [-smartquote] [-noencode] [-keepsoftcr]
+                [-notzutc] [-p <port>] [-m <maxconn>] [-def_flowed on/off]
+                [-def_showto on/off] [-origin <origin>] [-g <groupsfile>]
+                [-a <allowfile>] [-u <usersfile>] [-x <xlatfile>]
+                [-l <logfile>]
 
  -debug
 
@@ -53,10 +56,6 @@ Usage: jamnntpd [-debug] [-noecholog] [-noxlat] [-nostripre] [-notearline]
  -noecholog
 
    Disables echoing of log messages to the console window.
-
- -noxlat
-
-   Disables the chararacter set translation between IBMPC and iso-8859-1.
 
  -nostripre
 
@@ -90,6 +89,21 @@ Usage: jamnntpd [-debug] [-noecholog] [-noxlat] [-nostripre] [-notearline]
    a bad thing even if quoted text will look a lot better after reformatting,
    this option is turned off by default.
 
+ -noencode
+
+   JamNNTPd by default MIME-encodes headers with non-ascii characters. If you
+   use this option, JamNNTPd will instead send the headers as plain 8-bit text.
+
+ -keepsoftcr
+
+   JamNNTPd by default removes the "Soft CR" (0x8d) character from message
+   bodies. Use this option to disable that behaviour.
+
+ -notzutc
+
+   JamNNTPd normally writes the timezone into a TZUTC kludge when a message
+   is posted. You can use this line if you don't want to create TZUTC kludges.
+
  -p <port>
 
    Set the port where JamNNTPd listens for connections. The default is 5000.
@@ -113,9 +127,16 @@ Usage: jamnntpd [-debug] [-noecholog] [-noxlat] [-nostripre] [-notearline]
 
    These can be modified by the user by loggin in with parameters (section 4.4)
 
+ -origin <origin>
+
+   Normally JamNNTPd uses the text found in the Organization header line as the
+   Origin line text in posted messages. You can use this switch to override the
+   Organization line and set your own origin for all posted messages.
+
  -g <groupsfile>
  -a <allowfile>
  -u <usersfile>
+ -x <xlatfile>
 
    Use these to override the default locations of the config files.
 
@@ -127,7 +148,7 @@ Usage: jamnntpd [-debug] [-noecholog] [-noxlat] [-nostripre] [-notearline]
 -----------------
 Access rights in JamNNTPd is based on access groups. Every newsgroup in
 JamNNTPd belongs to an acess group. Access groups are named using one letter,
-typically A to Z.
+typically A to Z (access groups are case-insensitive).
 
 When a user connects to the server, he/she gets access to two set of access
 groups. The first set of groups are for read access and the second set of
@@ -142,7 +163,7 @@ defined in the "users" file.
 
 4.3 Configuration files
 -----------------------
-JamNNTPd uses three configuration files:
+JamNNTPd uses four configuration files:
 
 1) In the "groups" file, the JAM areas that JamNNTPd should provide as
    newsgroups are configured.
@@ -154,7 +175,12 @@ JamNNTPd uses three configuration files:
 3) In the "users" file, you can list users that should be given access to
    additional groups if they log in.
 
+4) In the "xlat" file, you can configure translation between the different
+   character sets used in your JAM messagebase and your newsreader.
+
 The format of these files can be seen in the example configuration files.
+You do not need to restart JamNNTPd if you change them since they are read
+every time a new connection to the server is made.
 
 4.4 Logging in with parameters
 ------------------------------
@@ -190,7 +216,7 @@ find a file called "jamnntpd" or "jamnntpd.exe" in the src directory.
 ---------------------
 JamNNTPd supports most of the basic NNTP protocol as specified in RFC-977.
 The commands IHAVE, NEWGROUPS and NEWNEWS are not implemented, but at least
-give valid response codes if a newsreader tries to use them. JamNNTP also
+give valid response codes if a newsreader tries to use them. JamNNTPd also
 supports the XOVER and AUTHINFO commands as specified in RFC-2980. XOVER
 never sends information about the line counts and byte counts of messages.
 
@@ -199,12 +225,16 @@ never sends information about the line counts and byte counts of messages.
 JamNNTPd probably breaks the RFC-1036 specification on some minor points,
 but seems to work well enough with most newsreaders.
 
-Support for MIME is limited. Posted messages are only accepted if they are
-in the format text/plain (i. e. HTML and multipart messages will be rejected).
-JamNNTPd can handle the quoted-printable encoding in the headers, but the
-body of the posted messages must be in normal 8bit or 7bit format of they
-will be rejected. Crossposted messages are rejected. Messages longer than
-10 000 bytes will also be rejected.
+MIME is supported. Headers with non-ascii characters are encoded using
+quoted-printable or base64 unless disabled with -noencode. Message bodies
+are always sent as 7bit or 8bit. The charset is always set to "us-ascii"
+if a message does not contain non-ascii characters.
+
+Posted messages can either be in plain text (8bit or 7bit) or encoded
+with quoted-printable of base64. Posted messages are only accepted if they
+are in the format text/plain (i. e. HTML and multipart messages will be
+rejected). Crossposted messages will be rejected. Messages longer than
+20 000 bytes will also be rejected.
 
 6.3 MSGID / Message-ID
 ----------------------
@@ -236,12 +266,10 @@ slighty worse both on the NNTP and fidonet side.
 
 6.6 Character set translation
 -----------------------------
-JamNNTPd has only limited support for character sets. The program assumes
-that the character set used by the newsreader is always iso-8859-1 and that
-the character set for messages in the JAM messagebase is IBMPC Codepage 437
-unless it is set to LATIN-1 using the CHRS kludge. Other character sets are
-not supported at the moment. This quick & dirty character set support can
-be disabled with -noxlat.
+JamNNTPd has good support for character sets. The character set translation
+is configured in the "xlat" file and uses CHS files in the GoldED+ format for
+the actual translation. Extendended CHS files with 256 character translations
+are supported and a character may be translated to up to four characters.
 
 6.7 Tested newsreaders
 ----------------------
@@ -261,7 +289,6 @@ Of these, only Mozilla seems to support format=flowed.
 Here are some improvements that maybe ought to be done:
 
  * A configuration file instead of lots of commandline switches
- * Proper charset support instead of quick and dirty for Swedish users
  * Netmail handling
 
 But it is pointless for me to spend time on these improvements unless someone

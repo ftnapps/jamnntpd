@@ -4,5 +4,7 @@
 #
 # <username> <password> <readgroups> <postgroups>
 #
+# "*" means "all groups" and "-" means "no groups".
+
 billing  password        AX    AX
 

@@ -2,7 +2,7 @@
 
 int main(int argc, char **argv) 
 { 
-   SOCKET sock; 
+   SOCKET sock;
    int error,res,c; 
    struct sockaddr_in local;
    fd_set fds;
@@ -10,10 +10,12 @@ int main(int argc, char **argv)
 
    if(argc == 2 && (stricmp(argv[1],"?")==0 || stricmp(argv[1],"-h")==0))
    {
-      printf("Usage: jamnntpd [-debug] [-noecholog] [-noxlat] [-nostripre] [-notearline]\n"
-             "                [-noreplyaddr] [-smartquote] [-p <port>] [-m <maxconn>]\n"
-             "                [-def_flowed on/off] [-def_showto on/off] [-g <groupsfile>]\n"
-             "                [-a <allowfile>] [-u <usersfile>] [-l <logfile>]\n");
+      printf("Usage: jamnntpd [-debug] [-noecholog] [-nostripre] [-notearline]\n"
+             "                [-noreplyaddr] [-smartquote] [-noencode] [-keepsoftcr]\n"
+             "                [-notzutc] [-p <port>] [-m <maxconn>] [-def_flowed on/off]\n"
+             "                [-def_showto on/off] [-origin <origin>] [-g <groupsfile>]\n"
+             "                [-a <allowfile>] [-u <usersfile>] [-x <xlatfile>]\n"
+             "                [-l <logfile>]\n");
 
       exit(0);
    }
@@ -23,10 +25,6 @@ int main(int argc, char **argv)
       if(stricmp(argv[c],"-debug")==0)
       {
          cfg_debug=TRUE;
-      }
-      else if(stricmp(argv[c],"-noxlat")==0)
-      {
-         cfg_noxlat=TRUE;
       }
       else if(stricmp(argv[c],"-noecholog")==0)
       {
@@ -47,6 +45,18 @@ int main(int argc, char **argv)
       else if(stricmp(argv[c],"-smartquote")==0)
       {
          cfg_smartquote=TRUE;
+      }
+      else if(stricmp(argv[c],"-noencode")==0)
+      {
+         cfg_noencode=TRUE;
+      }
+      else if(stricmp(argv[c],"-keepsoftcr")==0)
+      {
+         cfg_keepsoftcr=TRUE;
+      }
+      else if(stricmp(argv[c],"-notzutc")==0)
+      {
+         cfg_notzutc=TRUE;
       }
       else if(stricmp(argv[c],"-p")==0)
       {
@@ -100,6 +110,16 @@ int main(int argc, char **argv)
 
          c++;
       }
+      else if(stricmp(argv[c],"-origin")==0)
+      {
+         if(c+1 == argc)
+         {
+            printf("Missing argument for %s\n",argv[c]);
+            exit(0);
+         }
+
+         cfg_origin=argv[++c];
+      }
       else if(stricmp(argv[c],"-g")==0)
       {
          if(c+1 == argc)
@@ -129,6 +149,16 @@ int main(int argc, char **argv)
          }
 
          cfg_usersfile=argv[++c];
+      }
+      else if(stricmp(argv[c],"-x")==0)
+      {
+         if(c+1 == argc)
+         {
+            printf("Missing argument for %s\n",argv[c]);
+            exit(0);
+         }
+
+         cfg_xlatfile=argv[++c];
       }
       else if(stricmp(argv[c],"-l")==0)
       {
