@@ -1,14 +1,321 @@
 #include "nntpserv.h"
 
+#define MAXFILEARGS 100
+
+char *fileargv[MAXFILEARGS];
+int fileargc;
+
+bool readargs(uchar *file);
+
+bool parseargs(int argc, char **argv,uchar *filename,ulong line)
+{   
+   uchar *arg,src[100];
+   int c;
+   
+   src[0]=0;
+
+   if(filename)
+      sprintf(src," (%.95s line %ld)",filename,line);
+   
+   for(c=0;c<argc;c++)
+   {
+      arg=argv[c];
+      
+      if(arg[0] == '-' && arg[1] == '-')
+         arg=&arg[1]; /* --option should be equivalent to -option */
+         
+      if(stricmp(arg,"-debug")==0)
+      {
+         cfg_debug=TRUE;
+      }
+      else if(stricmp(arg,"-noecholog")==0)
+      {
+         cfg_noecholog=TRUE;
+      }
+      else if(stricmp(arg,"-nostripre")==0)
+      {
+         cfg_nostripre=TRUE;
+      }
+      else if(stricmp(arg,"-notearline")==0)
+      {
+         cfg_notearline=TRUE;
+      }
+      else if(stricmp(arg,"-nocancel")==0)
+      {
+         cfg_nocancel=TRUE;
+      }
+      else if(stricmp(arg,"-strictnetmail")==0)
+      {
+         cfg_strictnetmail=TRUE;
+      }
+      else if(stricmp(arg,"-readorigin")==0)
+      {
+         cfg_readorigin=TRUE;
+      }
+      else if(stricmp(arg,"-noreplyaddr")==0)
+      {
+         cfg_noreplyaddr=TRUE;
+      }
+      else if(stricmp(arg,"-smartquote")==0)
+      {
+         cfg_smartquote=TRUE;
+      }
+      else if(stricmp(arg,"-noencode")==0)
+      {
+         cfg_noencode=TRUE;
+      }
+      else if(stricmp(arg,"-notzutc")==0)
+      {
+         cfg_notzutc=TRUE;
+      }
+      else if(stricmp(arg,"-p")==0 || stricmp(arg,"-port")==0)
+      {
+         if(c+1 == argc)
+         {
+            printf("Missing argument for %s%s\n",argv[c],src);
+            return(FALSE);
+         }
+
+         cfg_port=atoi(argv[++c]);
+      }
+      else if(stricmp(arg,"-m")==0 || stricmp(arg,"-max")==0)
+      {
+         if(c+1 == argc)
+         {
+            printf("Missing argument for %s%s\n",argv[c],src);
+            return(FALSE);
+         }
+
+         cfg_maxconn=atoi(argv[++c]);
+      }
+      else if(stricmp(arg,"-def_flowed")==0)
+      {
+         if(c+1 == argc)
+         {
+            printf("Missing argument for %s%s\n",argv[c],src);
+            return(FALSE);
+         }
+
+         if(!(setboolonoff(argv[c+1],&cfg_def_flowed)))
+         {
+            printf("Invalid setting %s for %s, must be on or off%s\n",argv[c+1],argv[c],src);
+            return(FALSE);
+         }
+
+         c++;
+      }
+      else if(stricmp(arg,"-def_showto")==0)
+      {
+         if(c+1 == argc)
+         {
+            printf("Missing argument for %s%s\n",argv[c],src);
+            return(FALSE);
+         }
+
+         if(!(setboolonoff(argv[c+1],&cfg_def_showto)))
+         {
+            printf("Invalid setting %s for %s, must be on or off%s\n",argv[c+1],argv[c],src);
+            return(FALSE);
+         }
+
+         c++;
+      }
+      else if(stricmp(arg,"-origin")==0)
+      {
+         if(c+1 == argc)
+         {
+            printf("Missing argument for %s%s\n",argv[c],src);
+            return(FALSE);
+         }
+
+         cfg_origin=argv[++c];
+      }
+      else if(stricmp(arg,"-guestsuffix")==0)
+      {
+         if(c+1 == argc)
+         {
+            printf("Missing argument for %s%s\n",argv[c],src);
+            return(FALSE);
+         }
+
+         cfg_guestsuffix=argv[++c];
+      }
+      else if(stricmp(arg,"-echomailjam")==0)
+      {
+         if(c+1 == argc)
+         {
+            printf("Missing argument for %s%s\n",argv[c],src);
+            return(FALSE);
+         }
+
+         cfg_echomailjam=argv[++c];
+      }
+      else if(stricmp(arg,"-echotosslog")==0)
+      {
+         if(c+1 == argc)
+         {
+            printf("Missing argument for %s%s\n",argv[c],src);
+            return(FALSE);
+         }
+
+         cfg_echotosslog=argv[++c];
+      }
+      else if(stricmp(arg,"-g")==0 || stricmp(arg,"-groups")==0)
+      {
+         if(c+1 == argc)
+         {
+            printf("Missing argument for %s%s\n",argv[c],src);
+            return(FALSE);
+         }
+
+         cfg_groupsfile=argv[++c];
+      }
+      else if(stricmp(arg,"-a")==0 || stricmp(arg,"-allow")==0)
+      {
+         if(c+1 == argc)
+         {
+            printf("Missing argument for %s%s\n",argv[c],src);
+            return(FALSE);
+         }
+
+         cfg_allowfile=argv[++c];
+      }
+      else if(stricmp(arg,"-u")==0 || stricmp(arg,"-users")==0)
+      {
+         if(c+1 == argc)
+         {
+            printf("Missing argument for %s%s\n",argv[c],src);
+            return(FALSE);
+         }
+
+         cfg_usersfile=argv[++c];
+      }
+      else if(stricmp(arg,"-x")==0 || stricmp(arg,"-xlat")==0)
+      {
+         if(c+1 == argc)
+         {
+            printf("Missing argument for %s%s\n",argv[c],src);
+            return(FALSE);
+         }
+
+         cfg_xlatfile=argv[++c];
+      }
+      else if(stricmp(arg,"-l")==0 || stricmp(arg,"-log")==0)
+      {
+         if(c+1 == argc)
+         {
+            printf("Missing argument for %s%s\n",argv[c],src);
+            return(FALSE);
+         }
+
+         cfg_logfile=argv[++c];
+      }
+      else if(stricmp(arg,"-config")==0)
+      {
+         if(filename)
+         {
+            printf("%s may only be used on command-line%s\n",argv[c],src);
+            return(FALSE);
+         }
+         else if(c+1 == argc)
+         {
+            printf("Missing argument for %s%s\n",argv[c],src);
+            return(FALSE);
+         }
+
+         if(!readargs(argv[++c]))
+            return(FALSE);
+      }
+      else
+      {
+         printf("Unknown switch %s%s\n",argv[c],src);
+         return(FALSE);
+      }
+   }
+
+   return(TRUE);
+}
+
+bool readargs(uchar *file)
+{
+   FILE *fp;
+   ulong line,firstarg,newargs,pos;
+   uchar s[1000],w[200],w2[200];
+   
+   if(!(fp=fopen(file,"r")))
+   { 
+      printf("Failed to open %s\n",file);
+      return(FALSE);
+   }
+
+   line=0;
+
+   while(fgets(s,999,fp))
+   {
+      line++;
+      strip(s);
+
+      if(s[0] != '#')
+      {
+         firstarg=fileargc;
+         newargs=0;
+         pos=0;
+         
+         while(getcfgword(s,&pos,w,200))
+         {
+            if(newargs == 0 && w[0] && w[0] != '-')
+            {
+               mystrncpy(w2,w,199);
+               strcpy(w,"-");
+               strcat(w,w2);
+            }
+         
+            if(fileargc == MAXFILEARGS)
+            {
+               printf("Too many options in %s, max is %d\n",file,MAXFILEARGS);
+               fclose(fp);
+               return(FALSE);
+            }         
+            
+            if(!(fileargv[fileargc++] = strdup(w)))
+            {
+               fclose(fp);
+               return(FALSE);
+            }
+            
+            newargs++;
+         }
+         
+         if(newargs)
+         {
+            if(!(parseargs(newargs,&fileargv[firstarg],file,line)))
+               return(FALSE);
+         }
+      }
+   }
+
+   fclose(fp);
+   return(TRUE);
+}
+
+void freeargs(void)
+{
+   int c;
+
+   for(c=0;c<fileargc;c++)
+      free(fileargv[c]);
+}
+
 int main(int argc, char **argv) 
 { 
    SOCKET sock;
-   int error,res,c; 
+   int error,res; 
    struct sockaddr_in local;
    fd_set fds;
    struct timeval tv;
-
-   if(argc == 2 && (stricmp(argv[1],"?")==0 || stricmp(argv[1],"-h")==0))
+   FILE *fp;
+   
+   if(argc == 2 && (stricmp(argv[1],"?")==0 || stricmp(argv[1],"-h")==0 || stricmp(argv[1],"--help")==0))
    {
 
            /*          1         2         3         4         5         6         7         8 */
@@ -18,15 +325,16 @@ int main(int argc, char **argv)
              "\n"
              " General options:\n"
              "\n"
-             " -p <port>             Port number for JamNNTPd (default: 5000)\n"
-             " -m <maxcomm>          Maximum number of simultaneous connections (default: 5)\n"
-             " -g <groupsfile>       Read this file instead of " CFG_GROUPSFILE "\n"
-             " -a <allowfile>        Read this file instead of " CFG_ALLOWFILE "\n"
-             " -u <usersfile>        Read this file instead of " CFG_USERSFILE "\n"
-             " -x <xlatfile>         Read this file instead of " CFG_XLATFILE "\n"
-             " -l <logfile>          Write to this file instead of " CFG_LOGFILE "\n"
-             " -noecholog            Do not write log messages to console\n" 
-             " -debug                Write all network communication to console\n"
+             " -p[ort] <port>         Port number for JamNNTPd (default: 5000)\n"
+             " -m[ax] <maxcomm>       Maximum number of simultaneous connections (default: 5)\n"
+             " -g[roups] <groupsfile> Read this file instead of " CFG_GROUPSFILE "\n"
+             " -a[llow] <allowfile>   Read this file instead of " CFG_ALLOWFILE "\n"
+             " -u[sers] <usersfile>   Read this file instead of " CFG_USERSFILE "\n"
+             " -x[lat] <xlatfile>     Read this file instead of " CFG_XLATFILE "\n"
+             " -l[og] <logfile>       Log to this file instead of " CFG_LOGFILE "\n"
+             " -noecholog             Do not write log messages to console\n" 
+             " -debug                 Write all network communication to console\n"
+             " -config <file>         Read options from this file\n"
              "\n"
              " Options for displaying messages:\n"
              "\n"
@@ -48,208 +356,39 @@ int main(int argc, char **argv)
              " -guestsuffix <suffix> Suffix added to from name of unauthenticated users\n"
              " -echomailjam <file>   Create echomail.jam file for CrashMail and other tossers\n"
              " -echotosslog <file>   Create echotoss log for hpt and other tossers\n"
+             "\n"
+             "If no options are specified, JamNNTPd will attempt to read options from\n"
+             CONFIGFILE " (if it exists).\n"
              "\n");
-
-      exit(0);
+      
+      return(FALSE);
    }
 
-   for(c=1;c<argc;c++)
+   if(argc == 1)
    {
-      if(stricmp(argv[c],"-debug")==0)
+      if((fp=fopen(CONFIGFILE,"r")))
       {
-         cfg_debug=TRUE;
-      }
-      else if(stricmp(argv[c],"-noecholog")==0)
-      {
-         cfg_noecholog=TRUE;
-      }
-      else if(stricmp(argv[c],"-nostripre")==0)
-      {
-         cfg_nostripre=TRUE;
-      }
-      else if(stricmp(argv[c],"-notearline")==0)
-      {
-         cfg_notearline=TRUE;
-      }
-      else if(stricmp(argv[c],"-nocancel")==0)
-      {
-         cfg_nocancel=TRUE;
-      }
-      else if(stricmp(argv[c],"-strictnetmail")==0)
-      {
-         cfg_strictnetmail=TRUE;
-      }
-      else if(stricmp(argv[c],"-readorigin")==0)
-      {
-         cfg_readorigin=TRUE;
-      }
-      else if(stricmp(argv[c],"-noreplyaddr")==0)
-      {
-         cfg_noreplyaddr=TRUE;
-      }
-      else if(stricmp(argv[c],"-smartquote")==0)
-      {
-         cfg_smartquote=TRUE;
-      }
-      else if(stricmp(argv[c],"-noencode")==0)
-      {
-         cfg_noencode=TRUE;
-      }
-      else if(stricmp(argv[c],"-notzutc")==0)
-      {
-         cfg_notzutc=TRUE;
-      }
-      else if(stricmp(argv[c],"-p")==0)
-      {
-         if(c+1 == argc)
+         fclose(fp);
+     
+         if(!readargs(CONFIGFILE))
          {
-            printf("Missing argument for %s\n",argv[c]);
+            freeargs();
             exit(0);
          }
-
-         cfg_port=atoi(argv[++c]);
       }
-      else if(stricmp(argv[c],"-m")==0)
-      {
-         if(c+1 == argc)
-         {
-            printf("Missing argument for %s\n",argv[c]);
-            exit(0);
-         }
-
-         cfg_maxconn=atoi(argv[++c]);
-      }
-      else if(stricmp(argv[c],"-def_flowed")==0)
-      {
-         if(c+1 == argc)
-         {
-            printf("Missing argument for %s\n",argv[c]);
-            exit(0);
-         }
-
-         if(!(setboolonoff(argv[c+1],&cfg_def_flowed)))
-         {
-            printf("Invalid setting %s for %s, must be on or off\n",argv[c+1],argv[c]);
-            exit(0);
-         }
-
-         c++;
-      }
-      else if(stricmp(argv[c],"-def_showto")==0)
-      {
-         if(c+1 == argc)
-         {
-            printf("Missing argument for %s\n",argv[c]);
-            exit(0);
-         }
-
-         if(!(setboolonoff(argv[c+1],&cfg_def_showto)))
-         {
-            printf("Invalid setting %s for %s, must be on or off\n",argv[c+1],argv[c]);
-            exit(0);
-         }
-
-         c++;
-      }
-      else if(stricmp(argv[c],"-origin")==0)
-      {
-         if(c+1 == argc)
-         {
-            printf("Missing argument for %s\n",argv[c]);
-            exit(0);
-         }
-
-         cfg_origin=argv[++c];
-      }
-      else if(stricmp(argv[c],"-guestsuffix")==0)
-      {
-         if(c+1 == argc)
-         {
-            printf("Missing argument for %s\n",argv[c]);
-            exit(0);
-         }
-
-         cfg_guestsuffix=argv[++c];
-      }
-      else if(stricmp(argv[c],"-echomailjam")==0)
-      {
-         if(c+1 == argc)
-         {
-            printf("Missing argument for %s\n",argv[c]);
-            exit(0);
-         }
-
-         cfg_echomailjam=argv[++c];
-      }
-      else if(stricmp(argv[c],"-echotosslog")==0)
-      {
-         if(c+1 == argc)
-         {
-            printf("Missing argument for %s\n",argv[c]);
-            exit(0);
-         }
-
-         cfg_echotosslog=argv[++c];
-      }
-      else if(stricmp(argv[c],"-g")==0)
-      {
-         if(c+1 == argc)
-         {
-            printf("Missing argument for %s\n",argv[c]);
-            exit(0);
-         }
-
-         cfg_groupsfile=argv[++c];
-      }
-      else if(stricmp(argv[c],"-a")==0)
-      {
-         if(c+1 == argc)
-         {
-            printf("Missing argument for %s\n",argv[c]);
-            exit(0);
-         }
-
-         cfg_allowfile=argv[++c];
-      }
-      else if(stricmp(argv[c],"-u")==0)
-      {
-         if(c+1 == argc)
-         {
-            printf("Missing argument for %s\n",argv[c]);
-            exit(0);
-         }
-
-         cfg_usersfile=argv[++c];
-      }
-      else if(stricmp(argv[c],"-x")==0)
-      {
-         if(c+1 == argc)
-         {
-            printf("Missing argument for %s\n",argv[c]);
-            exit(0);
-         }
-
-         cfg_xlatfile=argv[++c];
-      }
-      else if(stricmp(argv[c],"-l")==0)
-      {
-         if(c+1 == argc)
-         {
-            printf("Missing argument for %s\n",argv[c]);
-            exit(0);
-         }
-
-         cfg_logfile=argv[++c];
-      }
-      else
-      {
-         printf("Unknown switch %s\n",argv[c]);
+   }
+   else
+   {
+      if(!parseargs(argc-1,&argv[1],NULL,0))
+      { 
+         freeargs();
          exit(0);
       }
    }
 
    if(!os_init())
    {
+       freeargs();
        exit(10);
    }
 	
@@ -261,6 +400,7 @@ int main(int argc, char **argv)
 
       os_showerror("Failed to create socket: %s",os_strerr(os_errno(),err,200));
       os_free();
+      freeargs();
       exit(10);
    }
 
@@ -279,7 +419,7 @@ int main(int argc, char **argv)
       os_showerror("Could not bind to port (server already running?): %s",os_strerr(os_errno(),err,200));
       close(sock);
       os_free();
-
+      freeargs();
       exit(10);
    }
 
@@ -292,6 +432,7 @@ int main(int argc, char **argv)
       os_showerror("Could not listen to socket: %s",os_strerr(os_errno(),err,200));
       close(sock);
       os_free();
+      freeargs();
       exit(10);
    }
 
@@ -342,7 +483,7 @@ int main(int argc, char **argv)
 
    os_logwrite(SERVER_NAME " exited");
    os_free();
-
+   freeargs();
    exit(0);
 }
 

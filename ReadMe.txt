@@ -39,28 +39,44 @@ Linux, you should avoid running it with root privileges.
 4. Using JamNNTPd
 =================
 
-4.1 Command-line options
-------------------------
-Usage: jamnntpd [<options>]
+4.1 Configuration options
+-------------------------
+The behaviour of JamNNTPd can be configured using the configuration options 
+specified below. These can be given to JamNNTPd in two ways:
+
+1) As command-line arguments
+
+2) In a configuration file (see -config command) with one option on each line. 
+   The preceding dash (-) is optional when an option is given in a file, it
+   will be added if missing.
+
+If JamNNTPd is run without any command-line arguments at all, it will attempt 
+to read options from a file called "jamnntpd.config" if present. Under Linux, 
+JamNNTPd  will look for this file in the "/etc" directory and under Windows 
+in the current directory.
+
+It is not necessary to specify any configuration options at all unless when
+fine-tuning JamNNTPd, the default have been designed to be sensible.
+
 
 General options:
 
- -p <port>
+ -port <port> or -p <port>
 
    Set the port where JamNNTPd listens for connections. The default is 5000.
 
- -m <maxconn>
+ -max <maxconn> or -m <maxconn>
 
    The maximum allowed number of connections at one time. The default is 5.
 
- -g <groupsfile>
- -a <allowfile>
- -u <usersfile>
- -x <xlatfile>
+ -groups <groupsfile> or -g <groupsfile>
+ -allow <allowfile> or -a <allowfile>
+ -users <usersfile> or -u <usersfile>
+ -xlat <xlatfile> or -x <xlatfile>
 
    Use these to override the default locations of the config files.
 
- -l <logfile>
+ -log <logfile> or -l <logfile>
 
    Use this to override the default location of the log file.
 
@@ -73,6 +89,10 @@ General options:
    If this option is used, JamNNTPd will print all sent and received text
    to the console window. Useful for testing.
 
+ -config <configfile>
+ 
+   Read options from the specified configuration file.
+   
    
 Options for displaying messages:
 

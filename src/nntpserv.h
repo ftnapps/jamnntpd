@@ -70,8 +70,8 @@ struct var
 #define CRLF CR LF
 
 #define SERVER_NAME       "JamNNTPd/" PLATFORM_NAME
-#define SERVER_VERSION    "1.0b4"
-#define SERVER_PIDVERSION "1/b4"
+#define SERVER_VERSION    "1.0b5"
+#define SERVER_PIDVERSION "1/b5"
 
 #define SOCKIO_TIMEOUT 5*60
 
@@ -82,6 +82,8 @@ int get_server_openconnections(void);
 int get_server_quit(void);
 
 void server(SOCKET s);
+
+#define CONFIGFILE         CFG_BASEPATH "jamnntpd.config"
 
 #define CFG_PORT           5000
 #define CFG_MAXCONN        5
