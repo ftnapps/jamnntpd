@@ -1,11 +1,11 @@
- 
-                               JamNNTPd 0.4
+
+                               JamNNTPd 0.5
 
                              by Johan Billing
 
                             (billing@df.lth.se)
 
-                                2003-11-03
+                                2003-12-06
 1. Introduction
 ===============
 JamNNTPd is an attempt to merge dying fidonet technology with modern Usenet
@@ -25,6 +25,10 @@ versions of JamNNTPd is allowed provided that the documentation clearly
 states that it is a modified version. Parts of JamNNTPd may be freely used
 in other projects as long as credit is given.
 
+JamNNTPd uses JAMLIB for reading and modifying JAM messagebases. JAMLIB is
+copyright 1996 Björn Stenberg and is released under the GNU Lesser General
+Public License (see included file src/jamlib/LICENSE).
+
 3. Security
 ===========
 I cannot guarantee that there are no security leaks in JamNNTPd. If you
@@ -37,15 +41,15 @@ Linux, you should avoid running it with root privileges.
 4.1 Command-line options
 ------------------------
 Usage: jamnntpd [-debug] [-noecholog] [-noxlat] [-nostripre] [-notearline]
-                [-noreplyaddr] [-p <port>] [-m <maxconn>] [-def_flowed on/off]
-                [-def_showto on/off] [-g <groupsfile>] [-a <allowfile>]
-                [-u <usersfile>] [-l <logfile>]
+                [-noreplyaddr] [-smartquote] [-p <port>] [-m <maxconn>]
+                [-def_flowed on/off] [-def_showto on/off] [-g <groupsfile>]
+                [-a <allowfile>] [-u <usersfile>] [-l <logfile>]
 
  -debug
 
    If this option is used, JamNNTPd will print att sent and received text
    to the console window. Useful for testing.
-   
+
  -noecholog
 
    Disables echoing of log messages to the console window.
@@ -70,6 +74,21 @@ Usage: jamnntpd [-debug] [-noecholog] [-noxlat] [-nostripre] [-notearline]
    JamNNTPd normally adds a REPLYADDR kludge with the e-mail address of the
    sender in posted messages. Use this option if you don't want REPLYADDR
    kludges. See also see section 6.4 below.
+
+ -smartquote
+
+   The quoting style of most newsreaders is different from traditional fidonet
+   software. If you enable this option, JamNNTPd will try to change any quoted
+   lines to fidonet style. This means that it will try to insert the initials
+   of the person you reply to before the '>' character and also that it will try
+   to compound multiple generations of quotes, i.e. "AA> BB>" will be changed
+   into "BB>>".
+
+   Reformatting quotes in this way means that the user who posts a message will
+   no longer have final say over the final content of the message since it will
+   be changed after he or she sends it to JamNNTPd. Since this in principle is
+   a bad thing even if quoted text will look a lot better after reformatting,
+   this option is turned off by default.
 
  -p <port>
 
@@ -159,35 +178,10 @@ Examples:
 5. Compilation
 ==============
 JamNNTPd should compile with most compilers. I use gcc under Linux and
-gcc-mingw32 under Windows.
-
-5.1. Install and compile JAMLIB
--------------------------------
-Before you can compile JamNNTPd, you need to install and compile JAMLIB.
-ownload JAMLIB and unpack it to the src/jamlib subdirectory. You need to
-use JAMLIB 1.3, found at this URL:
-
-  http://ww.df.lth.se/~billing/jamlib.html
-
-That is the latest generic version of JAMLIB. The newer and heavily 
-linuxified versions found at sourceforge.net won't work unless you adapt
-the source and/or the Makefile to use them.
-
-Once the JAMLIB sources are in place, all you need to do is to go to that
-directory and type one of these commands depending on the platform you
-are using.
-
-  make -f Makefile.linux
-  make -f Makefile.win32
-
-5.2. Compilation of JamNNTPd
-----------------------------
-Just go to the src directory and type one of these commands:
-
-  make -f Makefile.linux
-  make -f Makefile.win32
-
-JamNNTPd should now be compiled.
+gcc-mingw32 under Windows. To compile JamNNTPd, go to the src directory
+and type either "make linux" or "make win32" depending on what platform
+you are compiling JamNNTPd on. After a successful compilation, you will
+find a file called "jamnntpd" or "jamnntpd.exe" in the src directory.
 
 6. Compatibility
 ================
@@ -216,7 +210,7 @@ will be rejected. Crossposted messages are rejected. Messages longer than
 ----------------------
 JamNNTPd does not present the MSGIDs found in the JAM messagebase as
 Message-IDs to the newsreader, but rather uses its own dummy Message-IDs
-instead. The references line in followups will be replaces by the proper
+instead. The references line in followups will be replaced by the proper
 REPLY line.
 
 6.4 REPLYADDR

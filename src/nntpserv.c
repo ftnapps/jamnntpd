@@ -17,6 +17,7 @@ bool cfg_noecholog;
 bool cfg_nostripre;
 bool cfg_noreplyaddr;
 bool cfg_notearline;
+bool cfg_smartquote;
 
 int server_openconnections;
 int server_quit;
@@ -94,6 +95,7 @@ bool jamopenarea(struct var *var,struct group *group)
    {
       JAM_CloseMB(var->openmb);
       free(var->openmb);
+      var->openmb=NULL;
    }
 
    if(JAM_OpenMB(group->jampath,&var->openmb))
@@ -233,7 +235,7 @@ void command_next(struct var *var)
 
    var->currentarticle++;
 
-   sockprintf(var,"223 %lu <%lu%%%s@JamNNTP> Article retrieved" CRLF,
+   sockprintf(var,"223 %lu <%lu$%s@JamNNTP> Article retrieved" CRLF,
       var->currentarticle,var->currentarticle,var->currentgroup->tagname);
 }
 
@@ -267,7 +269,7 @@ void command_last(struct var *var)
 
    var->currentarticle--;
 
-   sockprintf(var,"223 %lu <%lu%%%s@JamNNTP> Article retrieved" CRLF,
+   sockprintf(var,"223 %lu <%lu$%s@JamNNTP> Article retrieved" CRLF,
       var->currentarticle,var->currentarticle,var->currentgroup->tagname);
 }
 
@@ -456,7 +458,7 @@ void command_abhs(struct var *var,uchar *cmd)
       article[strlen(article)-1]=0;
 
       at=strchr(article,'@');
-      pc=strchr(article,'%');
+      pc=strchr(article,'$');
 
       if(!at || !pc)
       {
@@ -530,7 +532,7 @@ void command_abhs(struct var *var,uchar *cmd)
 
    if(stricmp(cmd,"STAT") == 0)
    {
-      sockprintf(var,"223 %lu <%lu%%%s@JamNNTP> Article retrieved" CRLF,
+      sockprintf(var,"223 %lu <%lu$%s@JamNNTP> Article retrieved" CRLF,
          articlenum,articlenum,group->tagname);
 
       return;
@@ -573,13 +575,13 @@ void command_abhs(struct var *var,uchar *cmd)
    }
 
    if(stricmp(cmd,"ARTICLE")==0)
-      sockprintf(var,"220 %ld <%ld%%%s@JamNNTP> Article retrieved - Head and body follow" CRLF,articlenum,articlenum,group->tagname);
+      sockprintf(var,"220 %ld <%ld$%s@JamNNTP> Article retrieved - Head and body follow" CRLF,articlenum,articlenum,group->tagname);
             
    if(stricmp(cmd,"HEAD")==0)
-      sockprintf(var,"221 %ld <%ld%%%s@JamNNTP> Article retrieved - Head follows" CRLF,articlenum,articlenum,group->tagname);
+      sockprintf(var,"221 %ld <%ld$%s@JamNNTP> Article retrieved - Head follows" CRLF,articlenum,articlenum,group->tagname);
 
    if(stricmp(cmd,"BODY")==0)
-      sockprintf(var,"222 %ld <%ld%%%s@JamNNTP> Article retrieved - Body follows" CRLF,articlenum,articlenum,group->tagname);
+      sockprintf(var,"222 %ld <%ld$%s@JamNNTP> Article retrieved - Body follows" CRLF,articlenum,articlenum,group->tagname);
 
    xlat=TRUE;
 
@@ -672,10 +674,10 @@ void command_abhs(struct var *var,uchar *cmd)
       sockprintf(var,"Newsgroups: %s" CRLF,group->tagname);
       sockprintf(var,"Subject: %s" CRLF,subject);
       sockprintf(var,"Date: %s" CRLF,datebuf);
-      sockprintf(var,"Message-ID: <%ld%%%s@JamNNTP>" CRLF,articlenum,group->tagname);
+      sockprintf(var,"Message-ID: <%ld$%s@JamNNTP>" CRLF,articlenum,group->tagname);
 
       if(header.ReplyTo)
-         sockprintf(var,"References: <%ld%%%s@JamNNTP>" CRLF,header.ReplyTo,group->tagname);
+         sockprintf(var,"References: <%ld$%s@JamNNTP>" CRLF,header.ReplyTo,group->tagname);
 
       sockprintf(var,"X-JAM-From: %s <%s>" CRLF,fromname,fromaddr);
 
@@ -870,7 +872,7 @@ void command_xover(struct var *var)
    if(first < min) first=min;
    if(last > max) last=max;
 
-   if(first > last || last-min < 1)
+   if(first > last || num == 0)
    {
       socksendtext(var,"420 No articles found in this range" CRLF);
       return;
@@ -952,12 +954,12 @@ void command_xover(struct var *var)
 
                makedate(header.DateWritten,datebuf);
 
-               sprintf(msgid,"<%ld%%%s@JamNNTP>",c,var->currentgroup->tagname);
+               sprintf(msgid,"<%ld$%s@JamNNTP>",c,var->currentgroup->tagname);
 
                reply[0]=0;
 
                if(header.ReplyTo)
-                  sprintf(reply,"<%ld%%%s@JamNNTP>",header.ReplyTo,var->currentgroup->tagname);
+                  sprintf(reply,"<%ld$%s@JamNNTP>",header.ReplyTo,var->currentgroup->tagname);
 
                escapetab(fromname);
                escapetab(toname);
@@ -1088,7 +1090,7 @@ void getparentmsgidfromnum(struct var *var,uchar *article,uchar *groupname,uchar
    article[strlen(article)-1]=0;
 
    at=strchr(article,'@');
-   pc=strchr(article,'%');
+   pc=strchr(article,'$');
 
    if(!at || !pc)
       return;
@@ -1157,6 +1159,141 @@ void getparentmsgidfromnum(struct var *var,uchar *article,uchar *groupname,uchar
    return;
 }
 
+void tidyquote(uchar *line)
+{
+   /* line should have some extra room. line may grow by one character */
+   int qn_begin=0;
+   int qn_length=0;
+   int qn_times=0;
+   int qn_end=0;
+
+   int c=0,c2,c3,d;
+
+   int kg=TRUE;
+
+   uchar *input;
+
+   if(!(input=strdup(line)))
+      return;
+
+   while(kg)
+   {
+      while(input[c] == ' ') c++;
+
+      c3=c;
+
+      while(input[c] != ' ' && input[c] != 13)
+      {
+         if(input[c] == '<') break;
+         c++;
+      }
+
+      if(input[c]==13 || input[c]==0)
+      {
+         kg=FALSE;
+      }
+
+      if(input[c-1]=='>')
+      {
+         for(c2=c-1;input[c2]=='>' && c2>=c3;c2--)
+         {
+            qn_times++;
+         }
+
+         qn_begin=c3;
+         qn_length=c2-c3+1;
+         qn_end=c;
+
+         c++;
+      }
+      else kg=FALSE;
+   }
+
+   if(qn_times)
+   {
+      if(input[qn_end]==13 || input[qn_end]==0)
+      {
+         line[0]=13;
+         line[1]=0;
+      }
+      else
+      {
+         d=0;
+
+         line[d++]=32;
+         for(c2=0;c2<qn_length;c2++) line[d++]=input[qn_begin+c2];
+         for(c2=0;c2<qn_times;c2++)  line[d++]='>';
+         line[d++]=32;
+         strcpy(&line[d],&input[c3]);
+      }
+   }
+
+   free(input);
+}
+
+uchar *smartquote(uchar *oldtext,ulong maxlen,uchar *fromname)
+{
+   uchar *newtext,line[300],mark[100];
+   int c,d,linebegins;
+
+   if(!(newtext=malloc(maxlen)))
+      return(NULL);
+
+   d=0;
+
+   for(c=0;fromname[c];c++)
+      if(c==0 || (c!=0 && fromname[c-1]==32)) mark[d++]=fromname[c];
+
+   mark[d]=0;
+
+   c=0;
+   d=0;
+
+   while(oldtext[c])
+   {
+      linebegins=c;
+
+      while(oldtext[c] != 13 && oldtext[c] != 0)
+         c++;
+
+      if(oldtext[c] == 13)
+         c++;
+
+      if(oldtext[linebegins] == '>' && c-linebegins < 200)
+      {
+         strcpy(line,mark);
+         strncat(line,&oldtext[linebegins],c-linebegins);
+         tidyquote(line);
+
+         if(strlen(line)+d+1 > maxlen)
+         {
+            /* We ran out of room */
+            free(newtext);
+            return(NULL);
+         }
+
+         strcpy(&newtext[d],line);
+         d+=strlen(line);
+      }
+      else
+      {
+         if(c-linebegins+d+1 > maxlen)
+         {
+            /* We ran out of room */
+            free(newtext);
+            return(NULL);
+         }
+
+         strncpy(&newtext[d],&oldtext[linebegins],c-linebegins);
+         d+=c-linebegins;
+      }
+   }
+
+   newtext[d]=0;
+
+   return(newtext);
+}
+
 void setreply(struct var *var,ulong parentmsg,ulong newmsg)
 {
    s_JamBaseHeader baseheader;
@@ -1210,7 +1347,7 @@ void setreply(struct var *var,ulong parentmsg,ulong newmsg)
 
 void command_post(struct var *var)
 {
-   uchar *text,line[1000];
+   uchar *text,*newtext,line[1000];
    ulong textlen,textpos,c,d,parentmsg;
    bool finished,toobig;
    uchar from[100],fromaddr[100],toname[100],subject[100],organization[100],newsgroup[100];
@@ -1353,7 +1490,7 @@ void command_post(struct var *var)
             line[strlen(line)-1]=0;
             mystrncpy(fromaddr,strrchr(line,'<')+1,100);
             strip(fromaddr);
-            
+
             *strchr(line,'<')=0;
             mystrncpy(from,&line[6],100);
             strip(from);
@@ -1473,11 +1610,14 @@ void command_post(struct var *var)
 
          if(line[strlen(line)-1] == ' ')
          {
+            strip(line);
             strcpy(&text[d],line);
             d+=strlen(line);
+            text[d++]=' ';
          }
          else
          {
+            strip(line);
             strcpy(&text[d],line);
             d+=strlen(line);
             text[d++]=13;
@@ -1485,6 +1625,7 @@ void command_post(struct var *var)
       }
       else
       {
+         strip(line);
          strcpy(&text[d],line);
          d+=strlen(line);
          text[d++]=13;
@@ -1578,6 +1719,15 @@ void command_post(struct var *var)
       Header_S.ReplyTo  = parentmsg;
 
       toname[36]=0;
+
+      if(cfg_smartquote)
+      {
+         if((newtext=smartquote(text,POST_MAXSIZE,toname)))
+         {
+            free(text);
+            text=newtext;
+         }
+      }
    }
    else
    {
@@ -2080,6 +2230,13 @@ void server(SOCKET s)
    -skriver ut plattformen i PID
    -lyssnar p† ^C „ven i XOVER
 
+   Nytt i 0.5:
+
+   -tar bort dubbla mellanslag när rader slås ihop i format=flowed
+   -smartquotes (ska gå att stänga av!)
+   -bytte ut % mot $ i MSGID så att det funkar med KNode
+   -XOVER funkade inte i areor med bara 1 text. funkar nu.
+      
 */
 
 

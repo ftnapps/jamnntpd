@@ -51,7 +51,7 @@ bool login(struct var *var,uchar *user,uchar *pass)
       }
    }
 
-   os_logwrite("(%s) Uknown user %s",var->clientid,user);
+   os_logwrite("(%s) Unknown user %s",var->clientid,user);
 
    fclose(fp);
 

@@ -57,8 +57,8 @@ struct var
 #define CRLF CR LF
 
 #define SERVER_NAME       "JamNNTPd/" PLATFORM_NAME
-#define SERVER_VERSION    "0.4"
-#define SERVER_PIDVERSION "0.4"
+#define SERVER_VERSION    "0.5"
+#define SERVER_PIDVERSION "0.5"
 
 #define SOCKIO_TIMEOUT 5*60
 
@@ -96,6 +96,7 @@ extern bool cfg_noecholog;
 extern bool cfg_nostripre;
 extern bool cfg_notearline;
 extern bool cfg_noreplyaddr;
+extern bool cfg_smartquote;
 
 extern bool cfg_def_flowed;
 extern bool cfg_def_showto;

@@ -1,0 +1,20 @@
+Changes in version 0.5
+
+ - Superfluous space characters are now removed when lines are joined when
+   posting using format=flowed.
+
+ - Implemented quote reformatting (-smartquote switch)
+
+ - Changed % to $ in Message-Id and References line.
+
+ - XOVER didn't work in groups with only one message. Fixed.
+
+ - JAMLIB is now included in the JamNNTPd archive and no longer needs to be
+   downloaded separately.
+
+ - Simplified the compilation process. Now "make linux" or "make win32" in
+   the src directory is enough.
+
+Changes in version 0.4
+
+ - First public release

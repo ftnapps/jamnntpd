@@ -11,9 +11,9 @@ int main(int argc, char **argv)
    if(argc == 2 && (stricmp(argv[1],"?")==0 || stricmp(argv[1],"-h")==0))
    {
       printf("Usage: jamnntpd [-debug] [-noecholog] [-noxlat] [-nostripre] [-notearline]\n"
-             "                [-noreplyaddr] [-p <port>] [-m <maxconn>] [-def_flowed on/off]\n"
-             "                [-def_showto on/off] [-g <groupsfile>] [-a <allowfile>]\n"
-             "                [-u <usersfile>] [-l <logfile>]\n");
+             "                [-noreplyaddr] [-smartquote] [-p <port>] [-m <maxconn>]\n"
+             "                [-def_flowed on/off] [-def_showto on/off] [-g <groupsfile>]\n"
+             "                [-a <allowfile>] [-u <usersfile>] [-l <logfile>]\n");
 
       exit(0);
    }
@@ -43,6 +43,10 @@ int main(int argc, char **argv)
       else if(stricmp(argv[c],"-noreplyaddr")==0)
       {
          cfg_noreplyaddr=TRUE;
+      }
+      else if(stricmp(argv[c],"-smartquote")==0)
+      {
+         cfg_smartquote=TRUE;
       }
       else if(stricmp(argv[c],"-p")==0)
       {
