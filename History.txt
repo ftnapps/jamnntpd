@@ -1,3 +1,11 @@
+Changes in version 0.61
+
+ - Fixed a bug that would cause JamNNTPd to crash when a JAM messagebase
+   couldn't be opened.
+   
+ - Fixed a bug that would cause JamNNTPd to crash when a default charset
+   had been specified in jamnntpd.groups. (Thanks Viktor!)
+
 Changes in version 0.6
 
  - Configurable charset handling based on CHS files in the GoldED+ format. 

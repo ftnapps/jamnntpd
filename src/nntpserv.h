@@ -70,8 +70,8 @@ struct var
 #define CRLF CR LF
 
 #define SERVER_NAME       "JamNNTPd/" PLATFORM_NAME
-#define SERVER_VERSION    "0.6"
-#define SERVER_PIDVERSION "0.6"
+#define SERVER_VERSION    "0.61"
+#define SERVER_PIDVERSION "0.61"
 
 #define SOCKIO_TIMEOUT 5*60
 

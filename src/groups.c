@@ -61,7 +61,7 @@ bool readgroups(struct var *var)
                }
                else if(option[0] != '-' && newgroup->defaultchrs[0] == 0)
                {
-                  mystrncpy(newgroup->defaultchrs,option,40);
+                  mystrncpy(newgroup->defaultchrs,option,20);
                }
                else
                {

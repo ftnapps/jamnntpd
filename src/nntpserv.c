@@ -102,6 +102,7 @@ bool jamopenarea(struct var *var,struct group *group)
       JAM_CloseMB(var->openmb);
       free(var->openmb);
       var->openmb=NULL;
+      var->opengroup=NULL;
    }
 
    if(JAM_OpenMB(group->jampath,&var->openmb))
@@ -110,6 +111,7 @@ bool jamopenarea(struct var *var,struct group *group)
       {
          free(var->openmb);
          var->openmb=NULL;
+         var->opengroup=NULL;
       }
       
       os_logwrite("(%s) Failed to open JAM messagebase \"%s\"",var->clientid,group->jampath);
