@@ -5,7 +5,10 @@
 # <tagname> <access group> <aka> <jampath> [<default chrs>] [-nochrs]
 #
 # The tagname is the name of the group. If you enter a '!' character in front
-# of the tagname, it will be treated as a netmail area. 
+# of the tagname, the area will be treated as a netmail area and users can 
+# only read messages to or from their realname(s). If you enter a '$' in
+# front of the tagname, the area will be treated as a local area which means
+# that posted messages will have no address, no tearline and no origin line.
 #
 # The default charset (optional) is the assumed charset when no CHRS or
 # CODEPAGE line is found. If the default chrs begins with a "!" character,
@@ -21,3 +24,4 @@
 R20_TEKNISKT_RASERI   A 2:205/454.77 c:\fido\areas\R20_TEKNISKT_RASERI
 R20_AMIGA             A 2:205/454.77 c:\fido\areas\R20_AMIGA             LATIN-1
 RU.COMP.HUMOR         A 2:205/454.77 c:\fido\areas\RU.COMP.HUMOR         !CP866
+$LOCAL                A 2:205/454.77 c:\fido\areas\LOCAL 

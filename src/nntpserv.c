@@ -103,6 +103,7 @@ bool jamopenarea(struct var *var,struct group *group)
       JAM_CloseMB(var->openmb);
       free(var->openmb);
       var->openmb=NULL;
+      var->opengroup=NULL;
    }
 
    if(JAM_OpenMB(group->jampath,&var->openmb))
@@ -111,6 +112,7 @@ bool jamopenarea(struct var *var,struct group *group)
       {
          free(var->openmb);
          var->openmb=NULL;
+         var->opengroup=NULL;
       }
       
       os_logwrite("(%s) Failed to open JAM messagebase \"%s\"",var->clientid,group->jampath);
@@ -494,7 +496,7 @@ void command_abhs(struct var *var,uchar *cmd)
    struct group *group;
    ulong min,max,num,c,d;
    uchar datebuf[50];
-   uchar fromaddr[100],toaddr[100],replyaddr[100];
+   uchar jamfromaddr[100],jamtoaddr[100],replyaddr[100],fromaddr[100];
    uchar fromname[100],toname[100],subject[100];
    uchar chrs[20],codepage[20],encoding[20],format[20],timezone[20];
    uchar buf[250];
@@ -667,9 +669,9 @@ void command_abhs(struct var *var,uchar *cmd)
    text[header.TxtLen]=0;
 
    fromname[0]=0;
-   fromaddr[0]=0;
+   jamfromaddr[0]=0;
    toname[0]=0;
-   toaddr[0]=0;
+   jamtoaddr[0]=0;
    subject[0]=0;
    replyaddr[0]=0;
    timezone[0]=0;
@@ -691,11 +693,11 @@ void command_abhs(struct var *var,uchar *cmd)
             break;
 
          case JAMSFLD_OADDRESS:
-            mystrncpy(fromaddr,field->Buffer,min(field->DatLen+1,100));
+            mystrncpy(jamfromaddr,field->Buffer,min(field->DatLen+1,100));
             break;
 
          case JAMSFLD_DADDRESS:
-            mystrncpy(toaddr,field->Buffer,min(field->DatLen+1,100));
+            mystrncpy(jamtoaddr,field->Buffer,min(field->DatLen+1,100));
             break;
 
          case JAMSFLD_SUBJECT:
@@ -793,6 +795,9 @@ void command_abhs(struct var *var,uchar *cmd)
 
    if(stricmp(cmd,"ARTICLE") == 0 || stricmp(cmd,"HEAD") == 0)
    {
+      if(replyaddr) strcpy(fromaddr,replyaddr);
+      else          strcpy(fromaddr,jamfromaddr);
+            
       if(fromaddr[0] == 0) strcpy(fromaddr,"unknown");
       if(fromname[0] == 0) strcpy(fromname,"unknown");
       if(toname[0] == 0)   strcpy(toname,"(none)");
@@ -804,8 +809,7 @@ void command_abhs(struct var *var,uchar *cmd)
       if(var->opt_showto) sprintf(buf,"%s -> %s",fromname,toname);
       else                strcpy(buf,fromname);
 
-      if(replyaddr[0]) mimesendheaderline(var,"From",buf,chrs,replyaddr,cfg_noencode);
-      else             mimesendheaderline(var,"From",buf,chrs,fromaddr,cfg_noencode);
+      mimesendheaderline(var,"From",buf,chrs,fromaddr,cfg_noencode);
 
       mimesendheaderline(var,"X-Comment-To",toname,chrs,NULL,cfg_noencode);
       sockprintf(var,"Newsgroups: %s" CRLF,group->tagname);
@@ -817,12 +821,16 @@ void command_abhs(struct var *var,uchar *cmd)
       if(header.ReplyTo)
          sockprintf(var,"References: <%ld$%s@JamNNTPd>" CRLF,header.ReplyTo,group->tagname);
 
-      sockprintf(var,"X-JAM-From: %s <%s>" CRLF,fromname,fromaddr);
-
-      if(toname[0])
+      if(jamfromaddr[0])
+         sockprintf(var,"X-JAM-From: %s <%s>" CRLF,fromname,jamfromaddr);
+      
+      else
+         sockprintf(var,"X-JAM-From: %s" CRLF,fromname);
+         
+      if(toname[0] || jamtoaddr[0])
       {
-         if(toaddr[0])
-            sockprintf(var,"X-JAM-To: %s <%s>" CRLF,toname,toaddr);
+         if(jamtoaddr[0])
+            sockprintf(var,"X-JAM-To: %s <%s>" CRLF,toname,jamtoaddr);
 
          else
             sockprintf(var,"X-JAM-To: %s" CRLF,toname);
@@ -1584,6 +1592,13 @@ void cancelmessage(struct var *var,uchar *article,struct xlat *postxlat)
       return;
    }
    
+   if(header.Attribute & MSG_LOCKED)
+   {
+      socksendtext(var,"441 POST failed (Cannot cancel, message is locked)" CRLF);
+      JAM_DelSubPacket(subpack);
+      return;
+   }
+   
    if(JAM_LockMB(var->openmb,10))
    {
       os_logwrite("(%s) Failed to lock JAM messagebase \"%s\"",var->clientid,group->jampath);
@@ -1725,7 +1740,12 @@ uchar *smartquote(uchar *oldtext,ulong maxlen,uchar *fromname)
       if(oldtext[linebegins] == '>' && c-linebegins < 200)
       {
          strcpy(line,mark);
-         strncat(line,&oldtext[linebegins],c-linebegins);
+         strcat(line,">");
+         
+         if(oldtext[linebegins+1] == '>')
+            strcat(line," ");
+            
+         strncat(line,&oldtext[linebegins+1],c-linebegins-1);
          tidyquote(line);
 
          if(strlen(line)+d+1 > maxlen)
@@ -1811,12 +1831,13 @@ void setreply(struct var *var,ulong parentmsg,ulong newmsg)
 bool validateaddr(uchar *str)
 {
    unsigned int zone,net,node,point;
-
-   if(sscanf(str,"%u:%u/%u.%u",&zone,&net,&node,&point) != 4)
+   char ch;
+   
+   if(sscanf(str,"%u:%u/%u.%u%c",&zone,&net,&node,&point,&ch) != 4)
    {
       point=0;
 
-      if(sscanf(str,"%u:%u/%u",&zone,&net,&node) != 3)
+      if(sscanf(str,"%u:%u/%u%c",&zone,&net,&node,&ch) != 3)
          return(FALSE);
    }
 
@@ -2277,6 +2298,12 @@ void command_post(struct var *var)
       }
    }
    
+   parentmsg=0;
+   replyid[0]=0;
+   toaddr[0]=0;
+   
+   sprintf(msgid,"%s %08lx",g->aka,get_msgid_num());
+      
    if(g->netmail && reference[0] == 0) /* New netmail message, parse To: line */
    {
       if(strnicmp(text,"To:",3)!=0)
@@ -2325,20 +2352,46 @@ void command_post(struct var *var)
       strip(toname);
       strip(toaddr);
                
-      if(!validateaddr(toaddr))
-      {
-         sockprintf(var,"441 Posting failed (Invalid address %s)" CRLF,toaddr);
-         free(text);
-         return;
-      }      
-   
       if((xlatres=xlatstr(toname,xlat->xlattab)))
       {
          mystrncpy(toname,xlatres,36);
          free(xlatres);
       }
    }   
+   else if(reference[0])
+   {
+      getparentmsgidfromnum(var,reference,g->tagname,replyid,toname,toaddr,&parentmsg,xlat);
+      toname[36]=0;
+   }
+   else
+   {
+      strcpy(toname,"All");
+      toaddr[0]=0;
+   }
+
+   /* Validate address */
+   
+   if(g->netmail)
+   {
+      if(!validateaddr(toaddr))
+      {
+         sockprintf(var,"441 Posting failed (Invalid address %s)" CRLF,toaddr);
+         free(text);
+         return;
+      }      
+   }
+   
+   /* Reformat quotes */
       
+   if(reference[0] &&  cfg_smartquote)
+   {
+      if((newtext=smartquote(text,allocsize,toname)))
+      {
+         free(text);
+         text=newtext;
+      }
+   }
+            
    /* Make JAM header */
 
    JAM_ClearMsgHeader(&Header_S);
@@ -2369,43 +2422,19 @@ void command_post(struct var *var)
 
    /* Set MSGID and REPLY */
 
-   replyid[0]=0;
-   msgid[0]=0;
-   parentmsg=0;
-   
-   sprintf(msgid,"%s %08lx",g->aka,get_msgid_num());
    addjamfield(SubPacket_PS,JAMSFLD_MSGID,msgid);
 
-   if(reference[0])
-   {
-      getparentmsgidfromnum(var,reference,g->tagname,replyid,toname,toaddr,&parentmsg,xlat);
-
+   if(replyid[0])
       addjamfield(SubPacket_PS,JAMSFLD_REPLYID,replyid);
-      Header_S.ReplyTo  = parentmsg;
-
-      toname[36]=0;
-
-      if(cfg_smartquote)
-      {
-         if((newtext=smartquote(text,allocsize,toname)))
-         {
-            free(text);
-            text=newtext;
-         }
-      }
-   }
-   else if(!g->netmail)
-   {
-      strcpy(toname,"All");
-      toaddr[0]=0;
-   }
-
+   
    Header_S.MsgIdCRC = JAM_Crc32(msgid,strlen(msgid));
    Header_S.ReplyCRC = JAM_Crc32(replyid,strlen(replyid));
 
+   Header_S.ReplyTo  = parentmsg;
+      
    /* Add tearline and origin */
 
-   if(!g->netmail)
+   if(!g->netmail && !g->local)
    {
       if(newsreader[0]==0 || cfg_notearline)  strcat(line,CR "---" CR);
       else                                   sprintf(line,CR "--- %s" CR,newsreader);
@@ -2460,7 +2489,9 @@ void command_post(struct var *var)
    addjamfield(SubPacket_PS,JAMSFLD_SENDERNAME,from);
    addjamfield(SubPacket_PS,JAMSFLD_RECVRNAME,toname);
    addjamfield(SubPacket_PS,JAMSFLD_SUBJECT,subject);
-   addjamfield(SubPacket_PS,JAMSFLD_OADDRESS,g->aka);
+   
+   if(!g->local)
+      addjamfield(SubPacket_PS,JAMSFLD_OADDRESS,g->aka);
 
    if(g->netmail)
       addjamfield(SubPacket_PS,JAMSFLD_DADDRESS,toaddr);
@@ -2497,6 +2528,7 @@ void command_post(struct var *var)
       addjamfield(SubPacket_PS,JAMSFLD_FTSKLUDGE,timezone);
 
    if(g->netmail)    Header_S.Attribute = MSG_LOCAL | MSG_PRIVATE | MSG_TYPENET;
+   else if(g->local) Header_S.Attribute = MSG_LOCAL | MSG_TYPELOCAL;
    else              Header_S.Attribute = MSG_LOCAL | MSG_TYPEECHO;
 
    /* Write message */
@@ -2959,12 +2991,14 @@ void server(SOCKET s)
 
 /*
 
-   post:
-   
-   fixa netmail
-   fixa cancel
-  
+
+localareas
+köra validateaddr() även när vid reply när toaddr tas från originaltexten
+inte skapa tomt REPLY om man svarar på text utan MSGID
+förbättra validateaddr() så att den klarar om det finns tecken som inte är 0-9, :, / eller .
+ta hänsyn till MSG_LOCKED flaggan i cancelmessage()
+viktors fix
+smartquote
+bättre X-JAM-From: visa bara fromaddr om den finns
+
 */
-
-
-

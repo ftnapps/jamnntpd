@@ -7,6 +7,7 @@ struct group
    uchar aka[40];
    uchar defaultchrs[20];
    bool netmail;
+   bool local;
    bool nochrs;
 };
 

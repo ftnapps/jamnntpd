@@ -1,9 +1,21 @@
 Changes in version 1.0
 
- - Added support for netmail
+ - Added support for netmail and local areas (see examples/jamnntpd.areas)
  
  - Added support for cancel messages
-  
+ 
+ - JamNNTPd no longer adds an empty REPLY kludge if to MSGID was found.
+ 
+ - Fixed -smartquote so that incorrect initials are not inserted.
+
+Changes in version 0.61
+
+ - Fixed a bug that would cause JamNNTPd to crash when a JAM messagebase
+   couldn't be opened.
+   
+ - Fixed a bug that would cause JamNNTPd to crash when a default charset
+   had been specified in jamnntpd.groups. (Thanks Viktor!)
+   
 Changes in version 0.6
 
  - Configurable charset handling based on CHS files in the GoldED+ format. 
