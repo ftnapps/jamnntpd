@@ -9,38 +9,38 @@
 LATIN-1
 CP865
 ;
-\0	?
-\0	?
-\0	?
-\0	?
-\0	?
-\0	?
-\0	?
-\0	?
-\0	?
-\0	?
-\0	?
-\0	?
-\0	?
-\0	?
-\0	?
-\0	?
-\0	?
-\0	?
-\0	?
-\0	?
-\0	?
-\0	?
-\0	?
-\0	?
-\0	?
-\0	?
-\0	?
-\0	?
-\0	?
-\0	?
-\0	?
-\0	?
+E	U	R              ; windows-1252 extension
+\0	?                      ; windows-1252 extension
+\0	'                      ; windows-1252 extension
+\0	\x9F                   ; windows-1252 extension
+\0	"                      ; windows-1252 extension
+.	.	.              ; windows-1252 extension
+\0	+                      ; windows-1252 extension
++	+                      ; windows-1252 extension
+\0	^ 	               ; windows-1252 extension
+0	/	0	0      ; windows-1252 extension
+\0	S                      ; windows-1252 extension
+\0	<                      ; windows-1252 extension
+O	E                      ; windows-1252 extension
+\0	?                      ; windows-1252 extension
+\0	Z                      ; windows-1252 extension
+\0	?                      ; windows-1252 extension
+\0	?                      ; windows-1252 extension
+\0	'                      ; windows-1252 extension
+\0	'                      ; windows-1252 extension
+\0	"                      ; windows-1252 extension
+\0	"                      ; windows-1252 extension
+\0	o                      ; windows-1252 extension
+\0	-                      ; windows-1252 extension
+-	-                      ; windows-1252 extension
+\0	~                      ; windows-1252 extension
+[	T	M	]      ; windows-1252 extension
+\0	s                      ; windows-1252 extension
+\0	>                      ; windows-1252 extension
+o	e                      ; windows-1252 extension
+\0	?                      ; windows-1252 extension
+\0	z                      ; windows-1252 extension
+\0	Y                      ; windows-1252 extension
 \0	\xFF
 \0	\xAD
 \0	c

@@ -11,10 +11,12 @@
 chsdir /home/fido/jamnntpd/xlat
 
 # Charset translations when reading messages
-# 
+
 # The charset specified with "defaultread" is the charset JamNNTPd will use
-# when no charset was specified. It can be overridden for specific areas in
-# the jamnntpd.groups config file.
+# when no charset was specified in the CHRS and CODEPAGE lines. It can be 
+# overridden for specific areas in the jamnntpd.groups config file. If you 
+# write "!" before the charset, it will be used regardless of the contents 
+# of the CHRS and CODEPAGE lines.
 
 defaultread IBMPC
 
@@ -28,28 +30,37 @@ read CP437      iso-8859-1    437_iso.chs
 read CP850      iso-8859-1    850_iso.chs
 read CP865      iso-8859-1    865_iso.chs
 read CP866      koi8-r        866_koi.chs
-read IBMPC,850  iso-8859-1    850_iso.chs
-read IBMPC,865  iso-8859-1    865_iso.chs
-read IBMPC      iso-8859-1    437_iso.chs
 read LATIN-1    iso-8859-1
-read *          unknown-8bit
+
+# readalias can be used to configure aliases for charsets
+
+readalias IBMPC,850  CP850
+readalias IBMPC,865  CP865
+readalias IBMPC,866  CP866
+readalias IBMPC      CP437
 
 # Charset translations when posting messages
 
-# The charset specified with "defaultread" is the charset JamNNTPd will use
-# when no charset was specified. It can be overridden for specific areas in
-# the jamnntpd.groups config file.
+# The charset specified with "defaultpost" is the charset JamNNTPd will use
+# when no charset was specified. 
 
 defaultpost iso-8859-1
 
-# Syntax: read <charset> <CHRS> <xlat file>
+# Syntax: post <charset> <CHRS>[,<CODEPAGE>] <xlat file>
 #
 # Here you can configure the charset translations to be used when posting
 # messages. If you don't want to create CHRS kludges, enter "" as CHRS.
 # You should have "read" translations set up for all charsets you accept or
-# the receiver name of the posts migth not be translated properly.
+# the receiver name of the posts might not be translated properly.
 
 post iso-8859-1 IBMPC         iso_437.chs
 post koi8-r     CP866         koi_866.chs
-post us-ascii   ""
 
+# postalias can be used to configure aliases for charsets
+#
+# windows-1252 and iso-8859-15 are not exactly the same as iso-8859-1, but
+# close enough for most people.
+
+postalias windows-1252 iso-8859-1
+postalias iso-8859-15  iso-8859-1
+postalias us-ascii     iso-8859-1

@@ -269,6 +269,126 @@ struct xlattab *readchs(struct var *var,uchar *filename)
    return(newxlattab);
 }
 
+bool matchcharset(uchar *pat,uchar *chrs,uchar *codepage)
+{
+   uchar buf[20],buf2[20];
+
+   if(strchr(pat,','))
+   {
+      /* Match chrs and codepage */
+      
+      mystrncpy(buf,pat,20);
+      *strchr(buf,',')=0;
+
+      mystrncpy(buf2,strchr(pat,',')+1,20);
+
+      if(matchpattern(buf,chrs) && matchpattern(buf2,codepage))
+         return(TRUE);
+
+      return(FALSE);
+   }
+   else
+   {
+      /* Match chrs only */
+
+      return matchpattern(pat,chrs);
+   }
+}
+
+void setchrscodepage(uchar *chrs,uchar *codepage,uchar *str)
+{
+   if(strchr(str,','))
+   {
+      mystrncpy(chrs,str,20);
+      *strchr(chrs,',')=0;
+
+      mystrncpy(codepage,strchr(str,',')+1,20);
+   }
+   else
+   {
+      mystrncpy(chrs,str,20);
+      codepage[0]=0;
+   }
+}
+
+struct xlat *findreadxlat(struct var *var,struct group *group,uchar *ichrs,uchar *icodepage,uchar *destpat)
+{
+   uchar chrs[20],codepage[20];
+   struct xlat *xlat;
+   struct xlatalias *xlatalias;
+   
+   mystrncpy(chrs,ichrs,20);
+   mystrncpy(codepage,icodepage,20);
+   
+   /* Do override */
+   
+   if(group->defaultchrs[0] == '!') 
+      setchrscodepage(chrs,codepage,&group->defaultchrs[1]);
+   
+   else if(var->defaultreadchrs[0] == '!')
+      setchrscodepage(chrs,codepage,&var->defaultreadchrs[1]);
+   
+   /* Set charset if missing */
+   
+   if(chrs[0] == 0 && group->defaultchrs[0] != 0 && group->defaultchrs[0] != '!') 
+      setchrscodepage(chrs,codepage,group->defaultchrs);
+      
+   if(chrs[0] == 0 && var->defaultreadchrs[0] != 0 && var->defaultreadchrs[0] != '!')
+      setchrscodepage(chrs,codepage,var->defaultreadchrs);      
+
+   /* Replace if an alias */      
+                  
+   for(xlatalias=var->firstreadalias;xlatalias;xlatalias=xlatalias->next)
+      if(matchcharset(xlatalias->pattern,chrs,codepage)) break;
+      
+   if(xlatalias)
+      setchrscodepage(chrs,codepage,xlatalias->replace);
+   
+   /* Find in list */
+      
+   if(destpat)
+   {
+      for(xlat=var->firstreadxlat;xlat;xlat=xlat->next)
+         if(matchcharset(xlat->fromchrs,chrs,codepage) && matchpattern(destpat,xlat->tochrs)) break;
+   }
+   else
+   {
+      for(xlat=var->firstreadxlat;xlat;xlat=xlat->next)
+         if(matchcharset(xlat->fromchrs,chrs,codepage)) break;
+   }
+   
+   return(xlat);
+}
+
+struct xlat *findpostxlat(struct var *var,uchar *ichrs)
+{
+   uchar chrs[20];
+   struct xlat *xlat;
+   struct xlatalias *xlatalias;
+   
+   mystrncpy(chrs,ichrs,20);
+   
+   /* Set charset if missing */
+   
+   if(chrs[0] == 0 && var->defaultpostchrs[0] != 0)
+      mystrncpy(chrs,var->defaultpostchrs,20);
+   
+   /* Replace if an alias */      
+                  
+   for(xlatalias=var->firstpostalias;xlatalias;xlatalias=xlatalias->next)
+      if(matchpattern(xlatalias->pattern,chrs)) break;
+      
+   if(xlatalias)
+      mystrncpy(chrs,xlatalias->replace,20);
+      
+   /* Find in list */
+      
+   for(xlat=var->firstpostxlat;xlat;xlat=xlat->next)
+      if(matchpattern(xlat->fromchrs,chrs)) break;
+   
+   return(xlat);
+}
+
 bool readxlat(struct var *var)
 {
    FILE *fp;
@@ -277,6 +397,7 @@ bool readxlat(struct var *var)
    bool res1,res2,res3,res4;
    ulong pos,line;
    struct xlat *newxlat,*lastreadxlat,*lastpostxlat;
+   struct xlatalias *newxlatalias, *lastreadalias,*lastpostalias;
    struct xlattab *xlattab;
 
    if(!(fp=fopen(cfg_xlatfile,"r")))
@@ -287,11 +408,15 @@ bool readxlat(struct var *var)
 
    lastreadxlat=NULL;
    lastpostxlat=NULL;
+   lastreadalias=NULL;
+   lastpostalias=NULL;
 
    var->firstreadxlat=NULL;
    var->firstpostxlat=NULL;
+   var->firstreadalias=NULL;
+   var->firstpostalias=NULL;
    var->firstxlattab=NULL;
-
+   
    basename[0]=0;
 
    line=0;
@@ -320,6 +445,40 @@ bool readxlat(struct var *var)
          else if(stricmp(type,"defaultread")==0 && res2)
          {
             mystrncpy(var->defaultreadchrs,fromchrs,20);
+         }
+         else if(stricmp(type,"readalias")==0 && res2 && res3)
+         {
+            if(!(newxlatalias=(struct xlatalias *)malloc(sizeof(struct xlatalias))))
+            {
+               fclose(fp);
+               return(FALSE);
+            }
+
+            newxlatalias->next=NULL;
+
+            if(!var->firstreadalias) var->firstreadalias=newxlatalias;
+            if(lastreadalias) lastreadalias->next=newxlatalias;
+            lastreadalias=newxlatalias;
+         
+            mystrncpy(newxlatalias->pattern,fromchrs,20);
+            mystrncpy(newxlatalias->replace,tochrs,20);
+         }
+         else if(stricmp(type,"postalias")==0 && res2 && res3)
+         {
+            if(!(newxlatalias=(struct xlatalias *)malloc(sizeof(struct xlatalias))))
+            {
+               fclose(fp);
+               return(FALSE);
+            }
+
+            newxlatalias->next=NULL;
+
+            if(!var->firstpostalias) var->firstpostalias=newxlatalias;
+            if(lastpostalias) lastpostalias->next=newxlatalias;
+            lastpostalias=newxlatalias;
+         
+            mystrncpy(newxlatalias->pattern,fromchrs,20);
+            mystrncpy(newxlatalias->replace,tochrs,20);
          }
          else if(res1 && res2 && res3) /* xlattab is optional */
          {
@@ -401,39 +560,16 @@ bool readxlat(struct var *var)
 
 void freexlat(struct var *var)
 {
-   struct xlat *xl,*xl2;
-   struct xlattab *xlt,*xlt2;
+   freelist(var->firstreadxlat);
+   freelist(var->firstpostxlat);
+   freelist(var->firstreadalias);
+   freelist(var->firstpostalias);
+   freelist(var->firstxlattab);
 
-   xl=var->firstreadxlat;
-
-   while(xl)
-   {
-      xl2=xl->next;
-      free(xl);
-      xl=xl2;
-   }
-
-   xl=var->firstpostxlat;
-
-   while(xl)
-   {
-      xl2=xl->next;
-      free(xl);
-      xl=xl2;
-   }
-
-   xlt=var->firstxlattab;
-
-   while(xlt)
-   {
-      xlt2=xlt->next;
-      free(xlt);
-      xlt=xlt2;
-   }
-
-   var->firstpostxlat=NULL;
    var->firstreadxlat=NULL;
+   var->firstpostxlat=NULL;
+   var->firstreadalias=NULL;
+   var->firstpostalias=NULL;
    var->firstxlattab=NULL;
 }
-
 

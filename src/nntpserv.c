@@ -360,7 +360,7 @@ void copyline(uchar *dest,uchar *src,long len)
    d=0;
 
    for(c=0;c<len;c++)
-     if(src[c] != 0x8d && src[c] != 10) dest[d++]=src[c];
+     if(src[c] != 10) dest[d++]=src[c];
 
    dest[d]=0;
 }
@@ -667,11 +667,7 @@ void command_abhs(struct var *var,uchar *cmd)
       }
    }
 
-   if(chrs[0] == 0) strcpy(chrs,group->defaultchrs);
-   if(chrs[0] == 0) strcpy(chrs,var->defaultreadchrs);      
-         
-   for(xlat=var->firstreadxlat;xlat;xlat=xlat->next)
-      if(matchcharset(xlat->fromchrs,chrs,codepage)) break;
+   xlat=findreadxlat(var,group,chrs,codepage,NULL);
 
    if(xlat) strcpy(chrs,xlat->tochrs);
    else     strcpy(chrs,"unknown-8bit");
@@ -1096,13 +1092,7 @@ void command_xover(struct var *var)
             if(fromname[0] == 0) strcpy(fromname,"unknown");
             if(toname[0] == 0)   strcpy(toname,"(none)");
 
-            /* Do xlat */
-            
-            if(chrs[0] == 0) strcpy(chrs,var->currentgroup->defaultchrs);
-            if(chrs[0] == 0) strcpy(chrs,var->defaultreadchrs);                
-            
-            for(xlat=var->firstreadxlat;xlat;xlat=xlat->next)
-               if(matchcharset(xlat->fromchrs,chrs,codepage)) break;
+            xlat=findreadxlat(var,var->currentgroup,chrs,codepage,NULL);
 
             if(xlat) strcpy(chrs,xlat->tochrs);
             else     strcpy(chrs,"unknown-8bit");
@@ -1252,7 +1242,7 @@ void addjamfield(s_JamSubPacket *SubPacket_PS,ulong fieldnum,uchar *fielddata)
    JAM_PutSubfield( SubPacket_PS, &Subfield_S);
 }
 
-void getparentmsgidfromnum(struct var *var,uchar *article,uchar *groupname,uchar *msgid,uchar *from,ulong *oldnum,uchar *destchrs)
+void getparentmsgidfromnum(struct var *var,uchar *article,uchar *groupname,uchar *msgid,uchar *from,ulong *oldnum,struct xlat *postxlat)
 {
    uchar *at,*pc;
    struct group *group;
@@ -1356,15 +1346,23 @@ void getparentmsgidfromnum(struct var *var,uchar *article,uchar *groupname,uchar
       }
    }                     
 
-   for(xlat=var->firstreadxlat;xlat;xlat=xlat->next)
-      if(matchcharset(xlat->fromchrs,chrs,codepage) && matchpattern(destchrs,xlat->tochrs)) break;
-      
+   xlat=findreadxlat(var,group,chrs,codepage,postxlat->fromchrs);
+   
    if(xlat && xlat->xlattab)
    {
       if((xlatres=xlatstr(from,xlat->xlattab)))
       {
          mystrncpy(from,xlatres,100);
          free(xlatres);
+      }
+   
+      if(postxlat->xlattab)
+      {
+         if((xlatres=xlatstr(from,postxlat->xlattab)))
+         {
+            mystrncpy(from,xlatres,100);
+            free(xlatres);
+         }
       }
    }
    
@@ -1569,7 +1567,7 @@ void command_post(struct var *var)
    bool finished,toobig;
    uchar from[100],fromaddr[100],toname[100],subject[100],organization[100],newsgroup[100];
    uchar contenttype[100],contenttransferencoding[100],reference[100],newsreader[100];
-   uchar msgid[100],replyid[100],replyto[100],chrs[20],chrs2[20],timezone[13];
+   uchar msgid[100],replyid[100],replyto[100],chrs[20],chrs2[20],codepage[20],timezone[13];
    struct group *g;
    struct xlat *xlat;
    s_JamSubPacket*	SubPacket_PS;
@@ -1941,11 +1939,7 @@ void command_post(struct var *var)
       return;
    }
 
-   if(chrs[0] == 0)
-      strcpy(chrs,var->defaultpostchrs);   
-      
-   for(xlat=var->firstpostxlat;xlat;xlat=xlat->next)
-      if(matchpattern(xlat->fromchrs,chrs)) break;
+   xlat=findpostxlat(var,chrs);
 
    if(!xlat)
    {
@@ -2016,7 +2010,7 @@ void command_post(struct var *var)
 
    if(reference[0])
    {
-      getparentmsgidfromnum(var,reference,g->tagname,replyid,toname,&parentmsg,xlat->fromchrs);
+      getparentmsgidfromnum(var,reference,g->tagname,replyid,toname,&parentmsg,xlat);
 
       addjamfield(SubPacket_PS,JAMSFLD_REPLYID,replyid);
       Header_S.ReplyTo  = parentmsg;
@@ -2076,12 +2070,6 @@ void command_post(struct var *var)
          free(xlatres);
       }
 
-      if((xlatres=xlatstr(toname,xlat->xlattab)))
-      {
-         mystrncpy(toname,xlatres,36);
-         free(xlatres);
-      }
-      
       if((xlatres=xlatstr(subject,xlat->xlattab)))
       {
          mystrncpy(subject,xlatres,72);
@@ -2113,22 +2101,17 @@ void command_post(struct var *var)
 
    if(xlat->tochrs[0])
    {
-      if(strchr(xlat->tochrs,','))
+      setchrscodepage(chrs,codepage,xlat->tochrs);
+      
+      if(chrs[0])
       {
-         strcpy(buf,xlat->tochrs);
-         *strchr(buf,',')=0;
-
-         sprintf(line,"CHRS: %s 2",buf);
-         addjamfield(SubPacket_PS,JAMSFLD_FTSKLUDGE,line);
-
-         strcpy(buf,strchr(xlat->tochrs,',')+1);
-
-         sprintf(line,"CODEPAGE: %s",buf);
+         sprintf(line,"CHRS: %s 2",chrs);
          addjamfield(SubPacket_PS,JAMSFLD_FTSKLUDGE,line);
       }
-      else
+      
+      if(codepage[0])
       {
-         sprintf(line,"CHRS: %s 2",xlat->tochrs);
+         sprintf(line,"CODEPAGE: %s",codepage);
          addjamfield(SubPacket_PS,JAMSFLD_FTSKLUDGE,line);
       }
    }
@@ -2346,6 +2329,8 @@ void server(SOCKET s)
    var.firstgroup=NULL;
    var.firstreadxlat=NULL;
    var.firstpostxlat=NULL;
+   var.firstreadalias=NULL;
+   var.firstpostalias=NULL;
    var.firstxlattab=NULL;
 
    var.readgroups[0]=0;

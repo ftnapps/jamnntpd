@@ -35,6 +35,8 @@ struct var
 
    struct xlat *firstreadxlat;
    struct xlat *firstpostxlat;
+   struct xlatalias *firstreadalias;
+   struct xlatalias *firstpostalias;
    struct xlattab *firstxlattab;
 
    uchar defaultreadchrs[20];
@@ -68,8 +70,8 @@ struct var
 #define CRLF CR LF
 
 #define SERVER_NAME       "JamNNTPd/" PLATFORM_NAME
-#define SERVER_VERSION    "0.6b"
-#define SERVER_PIDVERSION "0.6b"
+#define SERVER_VERSION    "0.6b2"
+#define SERVER_PIDVERSION "0.6b2"
 
 #define SOCKIO_TIMEOUT 5*60
 

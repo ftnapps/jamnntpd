@@ -6,7 +6,7 @@ bool getcfgword(uchar *line, ulong *pos, uchar *dest, ulong destlen);
 bool matchgroup(uchar *groups,uchar group);
 bool matchpattern(uchar *pat,uchar *ip);
 void stripctrl(uchar *str);
-bool matchcharset(uchar *pat,uchar *chrs,uchar *codepage);
 ulong count8bit(uchar *text);
+void freelist(void *first);
 
 

@@ -167,30 +167,6 @@ void stripctrl(uchar *str)
    str[d]=0;
 }
 
-bool matchcharset(uchar *pat,uchar *chrs,uchar *codepage)
-{
-   uchar buf[20],buf2[20];
-
-   if(strchr(pat,','))
-   {
-      mystrncpy(buf,pat,20);
-      *strchr(buf,',')=0;
-
-      mystrncpy(buf2,strchr(pat,',')+1,20);
-
-      if(matchpattern(buf,chrs) && matchpattern(buf2,codepage))
-         return(TRUE);
-
-      return(FALSE);
-   }
-   else
-   {
-      /* Match chrs only */
-
-      return matchpattern(pat,chrs);
-   }
-}
-
 ulong count8bit(uchar *text)
 {
    ulong c,res;
@@ -201,4 +177,18 @@ ulong count8bit(uchar *text)
       if(text[c] & 0x80) res++;
 
    return(res);
+}
+
+void freelist(void *first)
+{
+   void *ptr,*next;
+   
+   ptr=first;
+   
+   while(ptr)
+   {
+      next=*(void **)ptr;
+      free(ptr);
+      ptr=next;
+   }
 }

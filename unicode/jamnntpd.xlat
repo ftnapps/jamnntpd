@@ -12,24 +12,24 @@ read CP437      utf-8         437_utf.chs
 read CP850      utf-8         850_utf.chs
 read CP865      utf-8         865_utf.chs
 read CP866      utf-8         866_utf.chs
-read IBMPC,850  utf-8         850_utf.chs
-read IBMPC,865  utf-8         865_utf.chs
-read IBMPC      utf-8         437_utf.chs
 read LATIN-1    utf-8         iso_utf.chs
 
 read CP437      iso-8859-1    437_iso.chs
 read CP850      iso-8859-1    850_iso.chs
 read CP865      iso-8859-1    865_iso.chs
 read CP866      koi8-r        866_koi.chs
-read IBMPC,850  iso-8859-1    850_iso.chs
-read IBMPC,865  iso-8859-1    865_iso.chs
-read IBMPC      iso-8859-1    437_iso.chs
 read LATIN-1    iso-8859-1
 
-read *          unknown-8bit
+readalias IBMPC,850  CP850
+readalias IBMPC,865  CP865
+readalias IBMPC,866  CP866
+readalias IBMPC      CP437
 
 defaultpost iso-8859-1
 
-post iso-8859-1 LATIN-1       
+post iso-8859-1 LATIN-1
 post koi8-r     CP866         koi_866.chs
-post us-ascii   ""
+
+postalias windows-1252 iso-8859-1
+postalias iso-8859-15  iso-8859-1
+postalias us-ascii     iso-8859-1

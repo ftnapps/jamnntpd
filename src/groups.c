@@ -74,15 +74,7 @@ bool readgroups(struct var *var)
 
 void freegroups(struct var *var)
 {
-   struct group *gr,*gr2;
-
-   gr=var->firstgroup;
-
-   while(gr)
-   {
-      gr2=gr->next;
-      free(gr);
-      gr=gr2;
-   }
+   freelist(var->firstgroup);
+   var->firstgroup=NULL;
 }
 
