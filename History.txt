@@ -1,14 +1,15 @@
 
 Changes in version 1.0
 
- - Added support for netmail and local areas (see examples/jamnntpd.areas)
+ - Added support for netmail and local areas (see examples/jamnntpd.groups)
  
  - Added support for cancel messages
  
  - It is now possible to read configuration options from a file using the
    new -config option. If JamNNTPd is started without any command-line 
    arguments at all, it will read configuration options from the file 
-   jamnntpd.config if it is present.
+   jamnntpd.config if it is present. A config file with the default
+   options can be created with the -create option.
    
  - Introduced the -readorigin switch that makes JamNNTPd read addresses
    from the origin line instead of the JAM headers.
@@ -35,7 +36,6 @@ Changes in version 1.0
  - Makechs now hopefully compiles without errors on *BSD.
 
  - Cleaned up the build process a bit.
-
 
 Changes in version 0.61
 

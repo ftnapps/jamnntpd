@@ -6,7 +6,6 @@ ulong cfg_maxconn     = CFG_MAXCONN;
 uchar *cfg_origin;
 uchar *cfg_guestsuffix;
 uchar *cfg_echomailjam;
-uchar *cfg_echotosslog;
 
 uchar *cfg_allowfile  = CFG_ALLOWFILE;
 uchar *cfg_groupsfile = CFG_GROUPSFILE;
@@ -112,12 +111,10 @@ bool jamopenarea(struct var *var,struct group *group)
    if(JAM_OpenMB(group->jampath,&var->openmb))
    {
       if(var->openmb)
-      {
          free(var->openmb);
-         var->openmb=NULL;
-         var->opengroup=NULL;
-      }
-      
+         
+      var->openmb=NULL;
+      var->opengroup=NULL;
       os_logwrite("(%s) Failed to open JAM messagebase \"%s\"",var->clientid,group->jampath);
       return(FALSE);
    }
@@ -2656,8 +2653,8 @@ void command_post(struct var *var)
 
    if(!g->netmail && !g->local)
    {
-      if(newsreader[0]==0 || cfg_notearline)  strcat(line,CR "---" CR);
-      else                                   sprintf(line,CR "--- %s" CR,newsreader);
+      if(newsreader[0]==0 || cfg_notearline)  strcpy(line,CR "---" CR);
+      else                                    sprintf(line,CR "--- %s" CR,newsreader);
 
       if(strlen(text) + strlen(line) < allocsize-1)
          strcat(text,line);
@@ -2799,19 +2796,6 @@ void command_post(struct var *var)
       else
       {
          fprintf(fp,"%s %ld\n",g->jampath,Header_S.MsgNum);
-         fclose(fp);
-      }
-   }
-   
-   if(cfg_echotosslog)
-   {
-      if(!(fp=fopen(cfg_echotosslog,"a")))
-      {
-         os_logwrite("(%s) Failed to open %s",var->clientid,cfg_echotosslog);
-      }
-      else
-      {
-         fprintf(fp,"%s\n",g->tagname);
          fclose(fp);
       }
    }
@@ -3221,33 +3205,4 @@ void server(SOCKET s)
    shutdown(s,2);
    close(s);
 }
-
-/* beta4:
- 
- - Introduced the -readorigin switch that makes JamNNTPd read addresses
-   from the origin line instead of the JAM headers. 
-   
- - Address is always read from the origin line when making a netmail reply
-   to an echomail message.
-
- - Added partial support for LIST NEWSGROUPS so that JamNNTPd also works 
-   with Lynx.
-
- - The Windows version now tries to display error messages instead of 
-   Winsock error codes. Only works on newer versions of Windows. 
-   
- - Error messages were cleaned up a bit.
-
- - "jamnntpd -h" is more helpful.
- 
- - Makechs now hopefully compiles without errors on *BSD.
-
- - Cleaned up the build process a bit.
- 
- - Fixed broken backspace quoting on From line.
-
- - "To: name" can be used on the first line of posted messages to set an 
-   alternative recipient name.
-
-*/
 

@@ -70,8 +70,8 @@ struct var
 #define CRLF CR LF
 
 #define SERVER_NAME       "JamNNTPd/" PLATFORM_NAME
-#define SERVER_VERSION    "1.0b5"
-#define SERVER_PIDVERSION "1/b5"
+#define SERVER_VERSION    "1.0"
+#define SERVER_PIDVERSION "1"
 
 #define SOCKIO_TIMEOUT 5*60
 
@@ -109,7 +109,6 @@ extern uchar *cfg_xlatfile;
 extern uchar *cfg_origin;
 extern uchar *cfg_guestsuffix;
 extern uchar *cfg_echomailjam;
-extern uchar *cfg_echotosslog;
 
 extern bool cfg_debug;
 extern bool cfg_noxlat;

@@ -6,10 +6,11 @@ char *fileargv[MAXFILEARGS];
 int fileargc;
 
 bool readargs(uchar *file);
+void createconfig(uchar *file);
 
 bool parseargs(int argc, char **argv,uchar *filename,ulong line)
 {   
-   uchar *arg,src[100];
+   uchar *arg,src[100],tmp[200];
    int c;
    
    src[0]=0;
@@ -24,6 +25,14 @@ bool parseargs(int argc, char **argv,uchar *filename,ulong line)
       if(arg[0] == '-' && arg[1] == '-')
          arg=&arg[1]; /* --option should be equivalent to -option */
          
+      if(filename && arg[0] && arg[0] != '-')
+      {
+         /* Add dash if missing */
+         strcpy(tmp,"-");
+         mystrncpy(&tmp[1],arg,199);
+         arg=tmp;
+      }
+      
       if(stricmp(arg,"-debug")==0)
       {
          cfg_debug=TRUE;
@@ -150,16 +159,6 @@ bool parseargs(int argc, char **argv,uchar *filename,ulong line)
 
          cfg_echomailjam=argv[++c];
       }
-      else if(stricmp(arg,"-echotosslog")==0)
-      {
-         if(c+1 == argc)
-         {
-            printf("Missing argument for %s%s\n",argv[c],src);
-            return(FALSE);
-         }
-
-         cfg_echotosslog=argv[++c];
-      }
       else if(stricmp(arg,"-g")==0 || stricmp(arg,"-groups")==0)
       {
          if(c+1 == argc)
@@ -200,7 +199,7 @@ bool parseargs(int argc, char **argv,uchar *filename,ulong line)
 
          cfg_xlatfile=argv[++c];
       }
-      else if(stricmp(arg,"-l")==0 || stricmp(arg,"-log")==0)
+      else if(stricmp(arg,"-l")==0 || stricmp(arg,"-logfile")==0)
       {
          if(c+1 == argc)
          {
@@ -214,7 +213,7 @@ bool parseargs(int argc, char **argv,uchar *filename,ulong line)
       {
          if(filename)
          {
-            printf("%s may only be used on command-line%s\n",argv[c],src);
+            printf("%s may only be used on commandline%s\n",argv[c],src);
             return(FALSE);
          }
          else if(c+1 == argc)
@@ -225,6 +224,23 @@ bool parseargs(int argc, char **argv,uchar *filename,ulong line)
 
          if(!readargs(argv[++c]))
             return(FALSE);
+      }
+      else if(stricmp(arg,"-create")==0)
+      {
+         if(filename)
+         {
+            printf("%s may only be used on commandline%s\n",argv[c],src);
+            return(FALSE);
+         }
+         
+         else if(c+1 == argc)
+         {
+            printf("Missing argument for %s%s\n",argv[c],src);
+            return(FALSE);
+         }
+
+         createconfig(argv[++c]);
+         return(FALSE);
       }
       else
       {
@@ -240,7 +256,7 @@ bool readargs(uchar *file)
 {
    FILE *fp;
    ulong line,firstarg,newargs,pos;
-   uchar s[1000],w[200],w2[200];
+   uchar s[1000],w[200];
    
    if(!(fp=fopen(file,"r")))
    { 
@@ -263,13 +279,6 @@ bool readargs(uchar *file)
          
          while(getcfgword(s,&pos,w,200))
          {
-            if(newargs == 0 && w[0] && w[0] != '-')
-            {
-               mystrncpy(w2,w,199);
-               strcpy(w,"-");
-               strcat(w,w2);
-            }
-         
             if(fileargc == MAXFILEARGS)
             {
                printf("Too many options in %s, max is %d\n",file,MAXFILEARGS);
@@ -296,6 +305,50 @@ bool readargs(uchar *file)
 
    fclose(fp);
    return(TRUE);
+}
+
+void createconfig(uchar *file)
+{
+   FILE *fp;
+   
+   if(!(fp=fopen(file,"w")))
+   { 
+      printf("Failed to open %s\n",file);
+      return;
+   }
+   
+   fprintf(fp,"# JamNNTPd configuration file\n");
+   fprintf(fp,"port %lu\n",cfg_port);
+   fprintf(fp,"max %lu\n",cfg_maxconn);
+   fprintf(fp,"groups \"%s\"\n",cfg_groupsfile);
+   fprintf(fp,"allow \"%s\"\n",cfg_allowfile);
+   fprintf(fp,"users \"%s\"\n",cfg_usersfile);
+   fprintf(fp,"xlat \"%s\"\n",cfg_xlatfile);
+   fprintf(fp,"logfile \"%s\"\n",cfg_logfile);
+   fprintf(fp,"%snoecholog\n",cfg_noecholog ? "" : "#");
+   fprintf(fp,"%sdebug\n",cfg_debug ? "" : "#");
+   fprintf(fp,"%sreadorigin\n",cfg_readorigin ? "" : "#");
+   fprintf(fp,"%snoencode\n",cfg_noencode ? "" : "#");
+   fprintf(fp,"%sstrictnetmail\n",cfg_strictnetmail ? "" : "#");
+   fprintf(fp,"def_flowed %s\n",cfg_def_flowed ? "on" : "off");
+   fprintf(fp,"def_showto %s\n",cfg_def_showto ? "on" : "off");
+   fprintf(fp,"%snostripre\n",cfg_nostripre ? "" : "#");
+   fprintf(fp,"%snotearline\n",cfg_notearline ? "" : "#");
+   fprintf(fp,"%snoreplyaddr\n",cfg_noreplyaddr ? "" : "#");
+   fprintf(fp,"%snotzutc\n",cfg_notzutc ? "" : "#");
+   fprintf(fp,"%snocancel\n",cfg_nocancel ? "" : "#");
+   fprintf(fp,"%ssmartquote\n",cfg_smartquote ? "" : "#");
+   
+   if(cfg_origin) fprintf(fp,"origin \"%s\"\n",cfg_origin);
+   else           fprintf(fp,"#origin <origin>\n");
+   
+   if(cfg_guestsuffix) fprintf(fp,"guestsuffix \"%s\"\n",cfg_guestsuffix);
+   else                fprintf(fp,"#guestsuffix <suffix>\n");
+   
+   if(cfg_echomailjam) fprintf(fp,"echomailjam \"%s\"\n",cfg_echomailjam);
+   else                fprintf(fp,"#echomailjam <file>\n");
+   
+   fclose(fp);
 }
 
 void freeargs(void)
@@ -326,15 +379,14 @@ int main(int argc, char **argv)
              " General options:\n"
              "\n"
              " -p[ort] <port>         Port number for JamNNTPd (default: 5000)\n"
-             " -m[ax] <maxcomm>       Maximum number of simultaneous connections (default: 5)\n"
+             " -m[ax] <maxconn>       Maximum number of simultaneous connections (default: 5)\n"
              " -g[roups] <groupsfile> Read this file instead of " CFG_GROUPSFILE "\n"
              " -a[llow] <allowfile>   Read this file instead of " CFG_ALLOWFILE "\n"
              " -u[sers] <usersfile>   Read this file instead of " CFG_USERSFILE "\n"
              " -x[lat] <xlatfile>     Read this file instead of " CFG_XLATFILE "\n"
-             " -l[og] <logfile>       Log to this file instead of " CFG_LOGFILE "\n"
+             " -l[ogfile] <logfile>   Log to this file instead of " CFG_LOGFILE "\n"
              " -noecholog             Do not write log messages to console\n" 
              " -debug                 Write all network communication to console\n"
-             " -config <file>         Read options from this file\n"
              "\n"
              " Options for displaying messages:\n"
              "\n"
@@ -352,13 +404,17 @@ int main(int argc, char **argv)
              " -notzutc              Do not create TZUTC kludges\n"
              " -nocancel             Do not allow cancelling of messages\n"
              " -smartquote           Reformat quoted text to fidonet style\n"
-             " -origin <origin>      Put this on the Origin line instead of Organization\n"
+             " -origin <origin>      Origin to use instead of contents of Organization line\n"
              " -guestsuffix <suffix> Suffix added to from name of unauthenticated users\n"
              " -echomailjam <file>   Create echomail.jam file for CrashMail and other tossers\n"
-             " -echotosslog <file>   Create echotoss log for hpt and other tossers\n"
              "\n"
-             "If no options are specified, JamNNTPd will attempt to read options from\n"
-             CONFIGFILE " (if it exists).\n"
+             " Options for configuration files:\n"
+             "\n"
+             " -config <file>        Read options from this file\n"
+             " -create <file>        Create a configuration file with the default options\n"
+             "\n"
+             "If no options are specified on the commandline, JamNNTPd will attempt to read\n"
+             "options from " CONFIGFILE " (if it exists).\n"
              "\n");
       
       return(FALSE);

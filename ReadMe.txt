@@ -44,16 +44,17 @@ Linux, you should avoid running it with root privileges.
 The behaviour of JamNNTPd can be configured using the configuration options 
 specified below. These can be given to JamNNTPd in two ways:
 
-1) As command-line arguments
+1) As commandline arguments
 
-2) In a configuration file (see -config command) with one option on each line. 
-   The preceding dash (-) is optional when an option is given in a file, it
-   will be added if missing.
+2) In a configuration file (see -config command). The preceding dash (-) 
+   is optional when an option is given in a file, it will be added if missing.
+   A configuration file with the default settings can be created with the 
+   -create option.
 
-If JamNNTPd is run without any command-line arguments at all, it will attempt 
+If JamNNTPd is run without any commandline arguments at all, it will attempt 
 to read options from a file called "jamnntpd.config" if present. Under Linux, 
 JamNNTPd  will look for this file in the "/etc" directory and under Windows 
-in the current directory.
+in the current directory. 
 
 It is not necessary to specify any configuration options at all unless when
 fine-tuning JamNNTPd, the default have been designed to be sensible.
@@ -76,7 +77,7 @@ General options:
 
    Use these to override the default locations of the config files.
 
- -log <logfile> or -l <logfile>
+ -logfile <logfile> or -l <logfile>
 
    Use this to override the default location of the log file.
 
@@ -89,11 +90,6 @@ General options:
    If this option is used, JamNNTPd will print all sent and received text
    to the console window. Useful for testing.
 
- -config <configfile>
- 
-   Read options from the specified configuration file.
-   
-   
 Options for displaying messages:
 
  -readorigin
@@ -200,12 +196,17 @@ Options for posting messages:
    with the messagebase and message number for each message that is posted.
    The file follows the ECHOMAIL.JAM format supported by some tossers. 
  
- -echotosslog <echotosslog>
- 
-   If you specify a filename here, JamNNTPd will write a line to this file 
-   with the tagname of the area for each message that is posted. This file
-   can be used with hpt.
 
+Options for configuration files:
+
+ -config <configfile>
+ 
+   Read options from the specified configuration file.
+   
+ -create <configfile>
+ 
+   Create a configuration file with the default settings.
+   
        
 4.2 Access rights
 -----------------
