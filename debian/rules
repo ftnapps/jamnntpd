@@ -22,7 +22,7 @@ build-stamp: configure-stamp
 	dh_testdir
 
 	# Add here commands to compile the package.
-	$(MAKE)
+	$(MAKE) -C src linux
 
 	touch $@
 
@@ -32,7 +32,7 @@ clean:
 	rm -f build-stamp configure-stamp
 
 	# Add here commands to clean up after the build process.
-	$(MAKE) clean
+	$(MAKE) -C src cleanlinux
 
 	dh_clean 
 
@@ -43,8 +43,8 @@ install: build
 	dh_installdirs
 
 	# Add here commands to install the package into debian/jamnntpd.
-	$(MAKE) DESTDIR=$(CURDIR)/debian/jamnntpd install
-
+	dh_install src/jamnntpd /usr/sbin
+	dh_install src/makechs /usr/sbin
 
 # Build architecture-independent files here.
 binary-indep: build install
