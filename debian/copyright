@@ -22,7 +22,7 @@ License:
 
     JamNNTPd uses JAMLIB for reading and modifying JAM messagebases. JAMLIB is
     copyright 1996 Björn Stenberg and is released under the GNU Lesser General
-    Public License (see included file src/jamlib/LICENSE).
+    Public License (see /usr/share/common-licences/LGPL-2.1).
 
 
 The Debian packaging is (C) 2008-2009, Robert James Clay <jame@rocasa.org> and
