@@ -3,7 +3,7 @@
 bool login(struct var *var,uchar *user,uchar *pass)
 {
    FILE *fp;
-   uchar s[1000],cfguser[100],cfgpass[100],cfgreadgroups[50],cfgpostgroups[50],dispname[36];
+   uchar s[1000],cfguser[100],cfgpass[100],cfgreadgroups[50],cfgpostgroups[50],realnames[100];
    int res1,res2,res3,res4,res5;
    ulong pos,line;
 
@@ -24,7 +24,7 @@ bool login(struct var *var,uchar *user,uchar *pass)
          res2=getcfgword(s,&pos,cfgpass,100);
          res3=getcfgword(s,&pos,cfgreadgroups,50);
          res4=getcfgword(s,&pos,cfgpostgroups,50);
-         res5=getcfgword(s,&pos,dispname,36);
+         res5=getcfgword(s,&pos,realnames,100);
 
          if(res1 && res2 && res3 && res4)
          {
@@ -41,7 +41,7 @@ bool login(struct var *var,uchar *user,uchar *pass)
 
                strcpy(var->readgroups,cfgreadgroups);
                strcpy(var->postgroups,cfgpostgroups);
-               if(res5) strcpy(var->dispname,dispname);
+               if(res5) strcpy(var->realnames,realnames);
                var->login=TRUE;
             
                fclose(fp);

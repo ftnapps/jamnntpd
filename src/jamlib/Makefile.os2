@@ -1,4 +1,4 @@
-CC = gcc -Wall -D__OS2__ -DINCL_DOSPROCESS
+CC = gcc -Wall -D__OS2__ -DINCL_DOSPROCESS -Zmt
 AR = ar -ru
 RM = del
 

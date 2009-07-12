@@ -105,7 +105,6 @@ void os_showerror(uchar *fmt,...)
 
    va_start(args, fmt);
 
-   printf("JamNNTPd error: ");
    vprintf(fmt,args);
    printf("\n");
 

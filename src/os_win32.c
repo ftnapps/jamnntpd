@@ -117,7 +117,6 @@ void os_showerror(uchar *fmt,...)
 
    va_start(args, fmt);
 
-   printf("JamNNTPd error: ");
    vprintf(fmt,args);
    printf("\n");
 
@@ -126,12 +125,26 @@ void os_showerror(uchar *fmt,...)
 
 int os_errno(void)
 {
-	return WSAGetLastError();
+   return WSAGetLastError();
 }
 
 uchar *os_strerr(int err,uchar *str,ulong len)
 {
-   sprintf(str,"Winsock error %d",err);
+   int res;
+
+   res=FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_MAX_WIDTH_MASK,NULL,(DWORD)err,0,str,len,NULL);
+
+   if(res)
+   {
+      CharToOem(str,str);
+   }
+   else
+   {
+      /* Fallback, FormatMessage() only works with winsock error codes on newer versions of Windows */
+      uchar buf[100];
+      sprintf(buf,"Winsock error %d",err);
+      mystrncpy(str,buf,len);
+   }
 
    return(str);
 }

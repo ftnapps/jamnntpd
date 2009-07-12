@@ -1,11 +1,11 @@
 
-                               JamNNTPd 0.6
+                               JamNNTPd 1.0
 
                              by Johan Billing
 
                             (billing@df.lth.se)
 
-                                2004-07-17
+                                2004-10-20
 
 1. Introduction
 ===============
@@ -39,23 +39,99 @@ Linux, you should avoid running it with root privileges.
 4. Using JamNNTPd
 =================
 
-4.1 Command-line options
-------------------------
-Usage: jamnntpd [-debug] [-noecholog] [-nostripre] [-notearline]
-                [-noreplyaddr] [-smartquote] [-noencode] [-notzutc] [-p <port>]
-                [-m <maxconn>] [-def_flowed on/off] [-def_showto on/off]
-                [-origin <origin>] [-guestsuffix <suffix>]
-                [-echomailjam <echomail.jam> [-g <groupsfile>] [-a <allowfile>]
-                [-u <usersfile>] [-x <xlatfile>] [-l <logfile>]
+4.1 Configuration options
+-------------------------
+The behaviour of JamNNTPd can be configured using the configuration options 
+specified below. These can be given to JamNNTPd in two ways:
 
+1) As commandline arguments
+
+2) In a configuration file (see -config command). The preceding dash (-) 
+   is optional when an option is given in a file, it will be added if missing.
+   A configuration file with the default settings can be created with the 
+   -create option.
+
+If JamNNTPd is run without any commandline arguments at all, it will attempt 
+to read options from a file called "jamnntpd.config" if present. Under Linux, 
+JamNNTPd  will look for this file in the "/etc" directory and under Windows 
+in the current directory. 
+
+It is not necessary to specify any configuration options at all unless when
+fine-tuning JamNNTPd, the default have been designed to be sensible.
+
+
+General options:
+
+ -port <port> or -p <port>
+
+   Set the port where JamNNTPd listens for connections. The default is 5000.
+
+ -max <maxconn> or -m <maxconn>
+
+   The maximum allowed number of connections at one time. The default is 5.
+
+ -groups <groupsfile> or -g <groupsfile>
+ -allow <allowfile> or -a <allowfile>
+ -users <usersfile> or -u <usersfile>
+ -xlat <xlatfile> or -x <xlatfile>
+
+   Use these to override the default locations of the config files.
+
+ -logfile <logfile> or -l <logfile>
+
+   Use this to override the default location of the log file.
+
+ -noecholog
+
+   Disables echoing of log messages to the console window.
+ 
  -debug
 
    If this option is used, JamNNTPd will print all sent and received text
    to the console window. Useful for testing.
 
- -noecholog
+Options for displaying messages:
 
-   Disables echoing of log messages to the console window.
+ -readorigin
+  
+   Get address from the Origin line instead of the OADDRESS field of the JAM 
+   message header. This option makes JamNNTPd slower, but may be useful if 
+   your tosser does not set the OADDRESS field.
+      
+ -noencode
+
+   JamNNTPd by default MIME-encodes headers with non-ascii characters. If you
+   use this option, JamNNTPd will instead send the headers as plain 8-bit text.
+
+ -strictnetmail
+ 
+   Makes JamNNTPd use strict article counters for netmail messages. Normally
+   JamNNTPd uses article counters that include all messages, not only those
+   that the user is allowed to read. That behaviour is much faster, but may 
+   cause your newsreader to indicate the presence of new messages in the 
+   netmail area even when there are only messages for other users. Using this
+   option will make JamNNTPd slower, but speed seems to be acceptable for 
+   small netmail areas with up to 1000 messages. Users will never be allowed 
+   to actually read netmail messages of other users even when this option is 
+   not used.
+   
+ -def_flowed on/off
+ -def_showto on/off
+
+   Sets the default of the flowed and showto settings (if no default is
+   specified on the commandline, both will be on by default)
+
+    flowed: If flowed is on, JamNNTPd will use format=flowed (section 6.5),
+            otherwise it will wrap long lines to a fixed width.
+
+    showto: Since there is no receiver for news messages, JamNNTPd can display
+            the receiver name as a part of the sender name. With this option,
+            this behaviour can be turned on or off.
+
+   These can be modified by the user by logging in with parameters (section 4.4)
+   
+
+Options for posting messages:
 
  -nostripre
 
@@ -67,13 +143,24 @@ Usage: jamnntpd [-debug] [-noecholog] [-nostripre] [-notearline]
    JamNNTPd normally puts the information from the X-Newsreader or User-Agent
    header field in the tearline of posted messages. This option disables this
    behaviour and leaves the tearline blank.
-
+ 
  -noreplyaddr
 
    JamNNTPd normally adds a REPLYADDR kludge with the e-mail address of the
    sender in posted messages. Use this option if you don't want REPLYADDR
    kludges. See also see section 6.4 below.
 
+ -notzutc
+
+   JamNNTPd normally writes the timezone into a TZUTC kludge when a message
+   is posted. You can use this option if you don't want to create TZUTC kludges.
+
+ -nocancel
+ 
+   Disallows the cancelling (deleting) of messages by the users. If allowed,
+   users can only cancel messages from one of their "realnames" and only if
+   the message has not yet been sent.
+ 
  -smartquote
 
    The quoting style of most newsreaders is different from traditional fidonet
@@ -89,46 +176,13 @@ Usage: jamnntpd [-debug] [-noecholog] [-nostripre] [-notearline]
    a bad thing even if quoted text will look a lot better after reformatting,
    this option is turned off by default.
 
- -noencode
-
-   JamNNTPd by default MIME-encodes headers with non-ascii characters. If you
-   use this option, JamNNTPd will instead send the headers as plain 8-bit text.
-
- -notzutc
-
-   JamNNTPd normally writes the timezone into a TZUTC kludge when a message
-   is posted. You can use this option if you don't want to create TZUTC kludges.
-
- -p <port>
-
-   Set the port where JamNNTPd listens for connections. The default is 5000.
-
- -m <maxconn>
-
-   The maximum allowed number of connections at one time. The default is 5.
-
- -def_flowed on/off
- -def_showto on/off
-
-   Sets the default of the flowed and showto settings (if no default is
-   specified on the commandline, both will be on by default)
-
-    flowed: If flowed is on, JamNNTPd will use format=flowed (section 6.5),
-            otherwise it will wrap long lines to a fixed width.
-
-    showto: Since there is no receiver for news messages, JamNNTPd can display
-            the receiver name as a part of the sender name. With this option,
-            this behaviour can be turned on or off.
-
-   These can be modified by the user by logging in with parameters (section 4.4)
-
  -origin <origin>
 
    Normally JamNNTPd uses the text found in the Organization header line as 
    the Origin line text in posted messages. You can use this switch to 
    override the Organization line and set your own origin for all posted 
    messages.
-
+ 
  -guestsuffix <suffix>
  
    If desired, JamNNTPd can add a suffix to posts from unauthenticated users. 
@@ -139,20 +193,21 @@ Usage: jamnntpd [-debug] [-noecholog] [-nostripre] [-notearline]
  -echomailjam <echomail.jam>
  
    If you specify a filename here, JamNNTPd will write a line to this file 
-   with the messagebase and message number of each message that is posted.
+   with the messagebase and message number for each message that is posted.
    The file follows the ECHOMAIL.JAM format supported by some tossers. 
-    
- -g <groupsfile>
- -a <allowfile>
- -u <usersfile>
- -x <xlatfile>
+ 
 
-   Use these to override the default locations of the config files.
+Options for configuration files:
 
- -l <logfile>
-
-   Use this to override the default location of the log file.
-
+ -config <configfile>
+ 
+   Read options from the specified configuration file.
+   
+ -create <configfile>
+ 
+   Create a configuration file with the default settings.
+   
+       
 4.2 Access rights
 -----------------
 Access rights in JamNNTPd is based on access groups. Every newsgroup in
@@ -281,7 +336,25 @@ is configured in the "xlat" file and uses CHS files in the GoldED+ format for
 the actual translation. Extended CHS files with 256 character translations
 are supported and a character may be translated to up to four characters.
 
-6.7 Tested newsreaders
+6.7 Netmail
+-----------
+JamNNTPd now also supports netmail. In netmail areas, users can only read
+messages to or from one of the names configured in the jamnntpd.users file.
+Replies to netmails are handled transparently and the name and address of
+the recipient are taken from the original message. When a user wants to write
+a new netmail, the name and address of the recipient are specified on the
+first line of the new message using this format:
+
+ To: name,address
+ 
+Example:
+
+ To: Johan Billing, 2:15/87
+ 
+A To: line can also be used to specify an alternative recipient in both 
+netmail and echomail areas.
+ 
+6.8 Tested newsreaders
 ----------------------
 JamNNTPd has been found to work with the following newsreaders:
 
@@ -291,6 +364,7 @@ JamNNTPd has been found to work with the following newsreaders:
    Xnews 5.04.25
    40tude Dialog 2.0.7.1
    Forte Free Agent 1.93/32.576
+   Lynx 2.8.5
 
 Of these, only Mozilla seems to support format=flowed.
 
@@ -334,14 +408,4 @@ Examples:
  
 Mappings files for all imaginable character sets can be found at the Unicode 
 site above.
-
-8. Todo
-=======
-Here are some improvements that maybe ought to be done:
-
- * A configuration file instead of lots of commandline switches
- * Netmail handling
-
-But it is pointless for me to spend time on these improvements unless someone
-out there needs them, because I don't.
 

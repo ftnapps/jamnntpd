@@ -45,7 +45,24 @@ bool readgroups(struct var *var)
             if(lastgroup) lastgroup->next=newgroup;
             lastgroup=newgroup;
 
-            strcpy(newgroup->tagname,tagname);
+            newgroup->netmail=FALSE;
+            newgroup->local=FALSE;
+            
+            if(tagname[0] == '!')
+            {
+               newgroup->netmail=TRUE;
+               strcpy(newgroup->tagname,&tagname[1]);
+            }
+            else if(tagname[0] == '$')
+            {
+               newgroup->local=TRUE;
+               strcpy(newgroup->tagname,&tagname[1]);
+            }
+            else
+            {
+               strcpy(newgroup->tagname,tagname);
+            }
+            
             newgroup->group=group[0];
             strcpy(newgroup->aka,aka);
             strcpy(newgroup->jampath,jampath);
@@ -61,7 +78,7 @@ bool readgroups(struct var *var)
                }
                else if(option[0] != '-' && newgroup->defaultchrs[0] == 0)
                {
-                  mystrncpy(newgroup->defaultchrs,option,40);
+                  mystrncpy(newgroup->defaultchrs,option,20);
                }
                else
                {

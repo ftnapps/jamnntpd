@@ -47,7 +47,7 @@ struct var
 
    uchar loginname[100];
    uchar password[100];
-   uchar dispname[36];
+   uchar realnames[36];
    
    bool opt_flowed;
    bool opt_showto;
@@ -70,8 +70,8 @@ struct var
 #define CRLF CR LF
 
 #define SERVER_NAME       "JamNNTPd/" PLATFORM_NAME
-#define SERVER_VERSION    "0.6"
-#define SERVER_PIDVERSION "0.6"
+#define SERVER_VERSION    "1.0"
+#define SERVER_PIDVERSION "1"
 
 #define SOCKIO_TIMEOUT 5*60
 
@@ -83,9 +83,10 @@ int get_server_quit(void);
 
 void server(SOCKET s);
 
+#define CONFIGFILE         CFG_BASEPATH "jamnntpd.config"
+
 #define CFG_PORT           5000
 #define CFG_MAXCONN        5
-#define CFG_DEBUG          FALSE
 
 #define CFG_ALLOWFILE      CFG_BASEPATH "jamnntpd.allow"
 #define CFG_GROUPSFILE     CFG_BASEPATH "jamnntpd.groups"
@@ -118,6 +119,9 @@ extern bool cfg_noreplyaddr;
 extern bool cfg_smartquote;
 extern bool cfg_noencode;
 extern bool cfg_notzutc;
+extern bool cfg_nocancel;
+extern bool cfg_strictnetmail;
+extern bool cfg_readorigin;
 
 extern bool cfg_def_flowed;
 extern bool cfg_def_showto;
