@@ -9,7 +9,7 @@ Upstream Author(s):
 
 Copyright:
 
-    Copyright (C) 2004 Johan Billing
+    Copyright (C) 2003-2005 Johan Billing
 
 License:
 
@@ -25,7 +25,7 @@ License:
     Public License (see included file src/jamlib/LICENSE).
 
 
-The Debian packaging is (C) 2008, Robert James Clay <jame@rocasa.org> and
+The Debian packaging is (C) 2008-2009, Robert James Clay <jame@rocasa.org> and
 is licensed under the GPL, see `/usr/share/common-licenses/GPL'.
 
 # Please also look if there are files or directories which have a
