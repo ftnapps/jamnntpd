@@ -1,0 +1,27 @@
+# Groups configuration for JamNNTPd
+#
+# Syntax:
+#
+# <tagname> <access group> <aka> <jampath> [<default chrs>] [-nochrs]
+#
+# The tagname is the name of the group. If you enter a '!' character in front
+# of the tagname, the area will be treated as a netmail area and users can 
+# only read messages to or from their realname(s). If you enter a '$' in
+# front of the tagname, the area will be treated as a local area which means
+# that posted messages will have no address, no tearline and no origin line.
+#
+# The default charset (optional) is the assumed charset when no CHRS or
+# CODEPAGE line is found. If the default chrs begins with a "!" character,
+# the "force" mode is activated for that group. In "force" mode, the 
+# specified charset is used regardless of the contents of the CHRS and 
+# CODEPAGE lines and messages can only be posted in charsets that can 
+# be translated to the forced character set.
+#
+# If -nochrs is specified, no CHRS will be created when messages are
+# posted in this area.
+
+!NETMAIL              A 2:205/454.77 c:\fido\areas\NETMAIL
+R20_TEKNISKT_RASERI   A 2:205/454.77 c:\fido\areas\R20_TEKNISKT_RASERI
+R20_AMIGA             A 2:205/454.77 c:\fido\areas\R20_AMIGA             LATIN-1
+RU.COMP.HUMOR         A 2:205/454.77 c:\fido\areas\RU.COMP.HUMOR         !CP866
+$LOCAL                A 2:205/454.77 c:\fido\areas\LOCAL 

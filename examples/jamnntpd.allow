@@ -1,0 +1,18 @@
+# Allowed IP numbers for JamNNTPd
+#
+# Syntax:
+#
+# <ip> <default read access groups> <default post access groups>
+#
+# "*" can be used as a wildcard. Everything after "*" is ignored, i. e.
+# 127.0.*.1 is equivalent to 127.0.*. Just write "*" alone on a line to
+# allow all IP numbbers.
+#
+# If no access groups are configured, users connecting from that IP will
+# not be able to access any newsgroups unless they log in.
+#
+# "*" means "all groups" and "-" means "no groups".
+#
+
+127.0.0.1   AX    A
+
