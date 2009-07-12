@@ -1,54 +1,46 @@
 #include "nntpserv.h"
 
-bool compareip(uchar *ip,uchar *pat)
-{
-   int c;
-
-   for(c=0;pat[c];c++)
-   {
-      if(pat[c]=='*')
-         return(TRUE);
-
-      if(ip[c] != pat[c])
-         return(FALSE);
-   } 
-
-   return(TRUE);
-}
-
-bool checkallow(struct var *var,uchar *str)
+bool checkallow(struct var *var,uchar *ip)
 {
    FILE *fp;
-   uchar s[1000];
-   long c,d;
-
+   uchar s[1000],cfgip[100],cfgreadgroups[50],cfgpostgroups[50];
+   int res1,res2,res3;
+   ulong pos,line;
+   
    if(!(fp=fopen(cfg_allowfile,"r")))
    {
       os_logwrite("(%s) Can't read allow file %s",var->clientid,cfg_allowfile);
       return(FALSE);
    }
 
+   line=0;
+   
    while(fgets(s,999,fp))
    {
+      line++;
       strip(s);
+      pos=0;
 
       if(s[0]!=0 && s[0]!='#')
       {
-         for(c=0;!isspace(s[c]) && s[c]!=0;c++);
-         if(isspace(s[c])) s[c++]=0;
-         while(isspace(s[c])) c++;
+         res1=getcfgword(s,&pos,cfgip,100);
+         res2=getcfgword(s,&pos,cfgreadgroups,50);
+         res3=getcfgword(s,&pos,cfgpostgroups,50);
 
-         for(d=c;!isspace(s[d]) && s[d]!=0;d++);
-         if(isspace(s[d])) s[d++]=0;
-         while(isspace(s[d]))  d++;
-
-         if(compareip(str,s))
+         if(res1)
          {
-            mystrncpy(var->readgroups,&s[c],50);
-            mystrncpy(var->postgroups,&s[d],50);
+            if(matchpattern(cfgip,ip))
+            {
+               if(res2) strcpy(var->readgroups,cfgreadgroups);
+               if(res3) strcpy(var->postgroups,cfgpostgroups);
 
-            fclose(fp);
-            return(TRUE);
+               fclose(fp);
+               return(TRUE);
+            }
+         }
+         else
+         {
+            os_logwrite("(%s) Syntax error on line %lu in %s, skipping line",var->clientid,line,cfg_allowfile);
          }
       }
    }

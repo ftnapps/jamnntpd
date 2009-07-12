@@ -33,14 +33,26 @@ struct var
 
    struct group *firstgroup;
 
+   struct xlat *firstreadxlat;
+   struct xlat *firstpostxlat;
+   struct xlatalias *firstreadalias;
+   struct xlatalias *firstpostalias;
+   struct xlattab *firstxlattab;
+
+   uchar defaultreadchrs[20];
+   uchar defaultpostchrs[20];
+   
    uchar readgroups[50];
    uchar postgroups[50];
 
    uchar loginname[100];
    uchar password[100];
-
+   uchar dispname[36];
+   
    bool opt_flowed;
    bool opt_showto;
+
+   bool login;
 };
 
 #include "os.h"
@@ -50,6 +62,7 @@ struct var
 #include "allow.h"
 #include "sockio.h"
 #include "login.h"
+#include "mime.h"
 
 #define CR "\x0d"
 #define LF "\x0a"
@@ -57,8 +70,8 @@ struct var
 #define CRLF CR LF
 
 #define SERVER_NAME       "JamNNTPd/" PLATFORM_NAME
-#define SERVER_VERSION    "0.5"
-#define SERVER_PIDVERSION "0.5"
+#define SERVER_VERSION    "0.6"
+#define SERVER_PIDVERSION "0.6"
 
 #define SOCKIO_TIMEOUT 5*60
 
@@ -77,6 +90,7 @@ void server(SOCKET s);
 #define CFG_ALLOWFILE      CFG_BASEPATH "jamnntpd.allow"
 #define CFG_GROUPSFILE     CFG_BASEPATH "jamnntpd.groups"
 #define CFG_USERSFILE      CFG_BASEPATH "jamnntpd.users"
+#define CFG_XLATFILE       CFG_BASEPATH "jamnntpd.xlat"
 
 #define CFG_LOGFILE        LOG_BASEPATH "jamnntpd.log"
 
@@ -89,6 +103,11 @@ extern uchar *cfg_allowfile;
 extern uchar *cfg_groupsfile;
 extern uchar *cfg_logfile;
 extern uchar *cfg_usersfile;
+extern uchar *cfg_xlatfile;
+
+extern uchar *cfg_origin;
+extern uchar *cfg_guestsuffix;
+extern uchar *cfg_echomailjam;
 
 extern bool cfg_debug;
 extern bool cfg_noxlat;
@@ -97,6 +116,8 @@ extern bool cfg_nostripre;
 extern bool cfg_notearline;
 extern bool cfg_noreplyaddr;
 extern bool cfg_smartquote;
+extern bool cfg_noencode;
+extern bool cfg_notzutc;
 
 extern bool cfg_def_flowed;
 extern bool cfg_def_showto;

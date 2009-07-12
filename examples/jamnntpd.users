@@ -2,7 +2,12 @@
 #
 # Syntax:
 #
-# <username> <password> <readgroups> <postgroups>
+# <username> <password> <readgroups> <postgroups> [<from name>]
 #
-billing  password        AX    AX
+# "*" means "all groups" and "-" means "no groups".
+# 
+# If desired, JamNNTPd can force the From name of posted messages to be the
+# name configured here.
 
+billing  password        AX    AX
+palinuris vulgaris       AX    AX "Palle Kuling"

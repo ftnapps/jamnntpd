@@ -1,0 +1,74 @@
+So you finally decided to take a look at that JamNNTPd package you've heard so much about? And after you've unpacked it, you have absolutely no clue about what to do with it? Well, then you've decided to read the right textfile. I did very much the same, half a year ago. It wasn't until I got a permanent connection to the internet that I realized what I could do with this package. If you *don't* have a permanent connection to the internet, you can stop reading here, and just delete the entire package.
+
+   Well, on second thought maybe not -- a local installation of JamNNTPd and your favourite news reader will probably be a better combination for reading and writing fidonet echoes than most others you will find, so stay with us.
+
+   What is it?
+   ==========
+
+   JamNNTPd is for 'news://...' what Apache, IIS &al are for 'http://...', i.e. it's a server program that lets any user from internet reach your JAM message base with any news reader they happen to have installed.
+
+   So how do you go about making JamNNTPd work? Well, this is a case study from my setup. I use WinXP as front-end against internet, and have (of course!) the built-in firewall enabled. I have several 'mshome.net' workstations connected to the internet via ICS, and on one of these I decided to setup and run JamNNTPd.
+
+   What do I do first?
+   ==================
+
+   The first thing you should do, after you've unpacked the zip-file, is to edit the four config files, jamnntpd.groups, *.users, *.allow and *.xlat to suit your setup. The help-texts in those files should be selfexplanatory.
+
+   Then what?
+   =========
+
+   Then you have to open up a port in your firewall to allow outside, as well as inside (usually yourself) callers to reach your JamNNTPd newsserver. The default port for a newsserver is 119, so this is a good choice  for incoming from internet, and 5000 is usually a good one for outgoing to your local network. Settings for the WinXP firewall can be reached from right-clicking on your internet connection icon in 'Settings'->'Network and Dial-up Connections' and then click your way to 'Properties'->'Advanced'->'Settings'. Add a new porthole, lets call it JamNNTPd, with 119, 5000, TCP and the local name of the workstation where you installed the JamNNTPd server (localhost will do fine if you installed JamNNTPd on the  workstation that your firewall is located on).
+
+   Now all you have to do is 'Win-R cmd' and do a 'cd' to the proper directory and give the command 'jamnntpd' and you're up and running! Remember that even if your outside callers must use port 119, you yourself, from inside the firewall, must use port 5000 to connect to your own newsserver.
+
+   So that's it, then?
+   ==================
+
+   Once you've made sure it's working, you can start finetuning your setup. First of all, Ctrl-C stops the server. :) Then you may remember that the server does not need to be restarted whenever you edit one of the four config files. Thirdly, even if the defaults usually is a good choice, if you want a conservative, fidonettish look&feel from your JamNNTPd newsserver, you might be interested in knowing how I start it:
+
+jm.bat
+------
+@jamnntpd.exe -notearline -smartquote -noreplyaddr -m 10 -echomailjam r:\sem\fdxit6.60
+------
+
+   As some of you might guess from the above, I still rely on a FrontDoor node to take care of most of the things, such as tossing and scanning echomail. 'fdxit6.60' is a semaphore file that tells my FrontDoor node 6 to exit with errorlevel 60. That is my major toss&scan event. I use CrashMail II (from the JamNNTPd author) to toss&scan my JAM areas, since my old squishmail can't handle JAM.
+
+   Can I let anybody in?
+   ====================
+
+   In fidonet, we have a very strict policy about real-names and proper authentication of users, before they are allowed to write anything in any of our echoes. So, if you setup fidonet echoes, you must make sure your users are authenticated before they are allowed to write anything. Reading is, of course, perfectly OK even for anonymous visitors.
+
+   Proper authenticating is also handled by JamNNTPd, based on how you setup your *.users and *.allow files. Normally you probably will have a *.allow that only has one line:
+
+   '* ABCDE A'
+
+   ... meaning you let everybody read in your A, B, C, D and E groups but only write in A (for anonymous).
+
+   In *.users you can add more groups, that only authenticated users may read or write:
+
+# Syntax:
+#
+# <username> <password> <readgroups> <postgroups>
+#
+sysop     password      ABISTX    ABISTX
+#
+# I=international
+# S=Swedish
+# T=beta-test
+# X=private
+# 
+user1   password1    AIST       AIST
+user2   password2    ABIST      ABIST
+user3   password3    ABIST      ABIS
+user4   password4    AIST       ABST
+user5   password5    AIST       AI
+guest   guest        AIST       A
+
+   Well, sysop could just as well have used * for both groups. Poor user 4 is not allowed to read B groups but can write (probably not a very good idea), and user5 is not trusted with writing in Swedish-only echoes. Furthermore, you can add a real-name for any user listed here (more about that in the main doc).
+
+   Then all you have to do, is inform your users to set up their news reader to "always request authentication to this server" and to have configured it with the proper nick, true-name and password. It may interest them to know, that what they enter in the "Organisation:" field ends up in the origin line, unless you use one of the options, described in the main doc, to use a fixed origin line of your choice.
+
+   -----
+
+   Bj”rn Felten, news://felten.dyndns.org
+   or fidonet 2:203/208

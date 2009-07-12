@@ -1,0 +1,72 @@
+# Charset configuration for JamNNTPd
+#
+# If you want to disable charset translation, uncomment the following two lines
+# and remove the rest of the file.
+#
+#read * unknown-8bit
+#post * ""
+
+# This is the directory where the *.chs files will be found
+
+chsdir /home/fido/jamnntpd/xlat
+
+# Charset translations when reading messages
+
+# The charset specified with "defaultread" is the charset JamNNTPd will use
+# when no charset was specified in the CHRS and CODEPAGE lines. If you enter
+# the character "!" before the charset, the "force" mode is activated. In 
+# "force" mode, the specified charset is used regardless of the contents of 
+# the CHRS and CODEPAGE lines and messages can only be posted in charsets 
+# that can be translated to the forced character set. Example: !CP866
+#
+# You can enter group-specific default charsets in jamnntpd.groups.
+
+defaultread IBMPC
+
+# Syntax: read <CHRS>[,<CODEPAGE>] <tochrs> [<xlat file>] [-keepsoftcr]
+#
+# Here you can configure the charset translations to be used when reading
+# messages. CHRS and CODEPAGE are taken from the respective kludge lines. 
+# If you omit the xlat file, no actual charset translation will take place.
+#
+# The "-keepsoftcr" option can be used to prevent JamNNTPd from removing the
+# Soft-CR character (0x8d) as it is used in some character sets like CP866.
+
+read CP437      iso-8859-1    437_iso.chs
+read CP850      iso-8859-1    850_iso.chs
+read CP865      iso-8859-1    865_iso.chs
+read CP866      koi8-r        866_koi.chs   -keepsoftcr
+read LATIN-1    iso-8859-1
+
+# readalias can be used to configure aliases for charsets
+
+readalias IBMPC,850  CP850
+readalias IBMPC,865  CP865
+readalias IBMPC,866  CP866
+readalias IBMPC      CP437
+
+# Charset translations when posting messages
+
+# The charset specified with "defaultpost" is the charset JamNNTPd will use
+# when no charset was specified. 
+
+defaultpost iso-8859-1
+
+# Syntax: post <charset> <CHRS>[,<CODEPAGE>] <xlat file>
+#
+# Here you can configure the charset translations to be used when posting
+# messages. If you don't want to create CHRS kludges, enter "" as CHRS.
+# You should have "read" translations set up for all charsets you accept or
+# the receiver name of the posts might not be translated properly.
+
+post iso-8859-1 IBMPC         iso_437.chs
+post koi8-r     CP866         koi_866.chs
+
+# postalias can be used to configure aliases for charsets
+#
+# windows-1252 and iso-8859-15 are not exactly the same as iso-8859-1, but
+# close enough for most people.
+
+postalias windows-1252 iso-8859-1
+postalias iso-8859-15  iso-8859-1
+postalias us-ascii     iso-8859-1

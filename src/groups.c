@@ -3,8 +3,9 @@
 bool readgroups(struct var *var)
 {
    FILE *fp;
-   uchar s[1000];
-   long c,d,e;
+   uchar s[1000],tagname[100],group[2],aka[40],jampath[100],option[100];
+   bool res1,res2,res3,res4;
+   ulong pos,line;
    struct group *newgroup,*lastgroup;
 
    if(!(fp=fopen(cfg_groupsfile,"r")))
@@ -16,39 +17,62 @@ bool readgroups(struct var *var)
    lastgroup=NULL;
    var->firstgroup=NULL;
 
+   line=0;
+
    while(fgets(s,999,fp))
    {
+      line++;
       strip(s);
-
+      pos=0;
+      
       if(s[0]!=0 && s[0]!='#')
       {
-         for(c=0;!isspace(s[c]) && s[c]!=0;c++);
-         if(isspace(s[c])) s[c++]=0;
-         while(isspace(s[c])) c++;
-
-         for(d=c;!isspace(s[d]) && s[d]!=0;d++);
-         if(isspace(s[d])) s[d++]=0;
-         while(isspace(s[d]))  d++;
-
-         for(e=d;!isspace(s[e]) && s[e]!=0;e++);
-         if(isspace(s[e])) s[e++]=0;
-         while(isspace(s[e]))  e++;
-
-         if(!(newgroup=(struct group *)malloc(sizeof(struct group))))
+         res1=getcfgword(s,&pos,tagname,100);
+         res2=getcfgword(s,&pos,group,2);
+         res3=getcfgword(s,&pos,aka,40);
+         res4=getcfgword(s,&pos,jampath,100);
+                
+         if(res1 && res2 && res3 && res4)
          {
-            fclose(fp);
-            return(FALSE);
+            if(!(newgroup=(struct group *)malloc(sizeof(struct group))))
+            {
+               fclose(fp);
+               return(FALSE);
+            }
+
+            newgroup->next=NULL;
+            if(!var->firstgroup) var->firstgroup=newgroup;
+            if(lastgroup) lastgroup->next=newgroup;
+            lastgroup=newgroup;
+
+            strcpy(newgroup->tagname,tagname);
+            newgroup->group=group[0];
+            strcpy(newgroup->aka,aka);
+            strcpy(newgroup->jampath,jampath);
+            
+            newgroup->nochrs=FALSE;
+            newgroup->defaultchrs[0]=0;            
+            
+            while(getcfgword(s,&pos,option,100))
+            {
+               if(stricmp(option,"-nochrs")==0)
+               {
+                  newgroup->nochrs=TRUE;
+               }
+               else if(option[0] != '-' && newgroup->defaultchrs[0] == 0)
+               {
+                  mystrncpy(newgroup->defaultchrs,option,40);
+               }
+               else
+               {
+                  os_logwrite("(%s) Warning: Unknown option %s on line %lu in %s",var->clientid,option,line,cfg_groupsfile);
+               }
+            }
          }
-
-         newgroup->next=NULL;
-         if(!var->firstgroup) var->firstgroup=newgroup;
-         if(lastgroup) lastgroup->next=newgroup;
-         lastgroup=newgroup;
-
-         mystrncpy(newgroup->tagname,s,100);
-         newgroup->group=s[c];
-         mystrncpy(newgroup->aka,&s[d],40);
-         mystrncpy(newgroup->jampath,&s[e],100);
+         else
+         {
+            os_logwrite("(%s) Syntax error on line %lu in %s, skipping line",var->clientid,line,cfg_groupsfile);
+         }
       }
    }
 
@@ -65,15 +89,7 @@ bool readgroups(struct var *var)
 
 void freegroups(struct var *var)
 {
-   struct group *gr,*gr2;
-
-   gr=var->firstgroup;
-
-   while(gr)
-   {
-      gr2=gr->next;
-      free(gr);
-      gr=gr2;
-   }
+   freelist(var->firstgroup);
+   var->firstgroup=NULL;
 }
 

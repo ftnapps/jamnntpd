@@ -1,3 +1,63 @@
+Changes in version 0.6
+
+ - Configurable charset handling based on CHS files in the GoldED+ format. 
+   
+ - Greatly improved MIME-handling. JamNNTPd now handles both quoted-printable
+   and base64 in both headers and message body when posting messages. Message
+   headers containing non-ascii characters are encoded when displayed unless
+   the -noencode option is used.
+
+ - Now supports "quoting" with backslash as described in RFC-822.
+
+ - JamNNTPd can now create an echomail.jam file that contains a list of all
+   posted messages. The echomail.jam file can also be used as a semaphore.
+
+ - A new -origin switch can be used to override the Organization line for
+   the origin.
+ 
+ - Support for TZUTC/TZUTCINFO kludges. JamNNTPd now creates a TZUTC kludge
+   unless the -notzutc option is used. Thanks to Peter Karlsson for the patch.
+
+ - Better parsing of configuration files. You can now use quotes for strings
+   containing space characters. "" means an empty string.
+
+ - It is now possible to override the From name on posts from authenticated
+   users. It is also possible to specify a suffix that is added to the From
+   name of all unauthenticated users using the -guestsuffix option.
+   
+ - Access groups are now case-insensitive. In addition, "*" now means all 
+   groups and "-" means no groups.
+
+ - The -smartquote option no longer removes initial space characters from 
+   quoted text and inserts incorrect initials.
+ 
+ - Fixed broken response code of NEWGROUPS command.
+
+ - The LIST ACTIVE and LIST OVERVIEW.FMT commands are now also supported.
+
+ - JamNNTPd now displays an X-Comment-To header line.
+
+ - The signature delimiter "-- " is no longer reflowed when posting with
+   format=flowed. Fixed display problems with long lines without spaces 
+   and format=flowed.
+
+ - All characters <32 are removed in the output of the XOVER command to
+   prevent problems.
+
+ - Increased the maximum size for posts from 10 000 bytes to 20 000 bytes.
+
+ - JamNNTPd no longer crashes when an area cannot be opened.
+
+ - JamNNTPd no longer crashes when trying to display messages with blank 
+   JAMSFLD_FTSKLUDGE fields in the XOVER command.
+  
+ - The body text of posts that started with a blank line were lost in 
+   previous versions. This has now been fixed.
+
+ - Upgraded JAMLIB to version 1.3.2.
+      
+ - Other minor fixes and improvements.
+ 
 Changes in version 0.5
 
  - Superfluous space characters are now removed when lines are joined when
