@@ -1,0 +1,27 @@
+# User configuration file for JamNNTd
+#
+# Syntax:
+#
+# <username> <password> <readgroups> <postgroups> [<realnames>]
+#
+# "*" means "all groups" and "-" means "no groups".
+# 
+# Optionally, you can also specify one or more "real" names for the user. 
+# Multiple names are separated by a comma. It is necessary to supply 
+# realnames if you want to use JamNNTPd with netmail as users can only read
+# netmails to or from one of these names. It is possible to use the "?" 
+# and "*" wildcards in the realnames. 
+#
+# It it also only possible for a user to cancel messages that were written 
+# by a name that matches their realnames.
+#
+# When a user posts a message, the first realname is used as the from name
+# unless it contains wildcards. If the first realname contains wildcards or 
+# if no realnames are supplied, the from name is taken from the From: header 
+# line of the posted message.
+#
+# If you use non-ascii characters in the realname, they should be in the 
+# character set used on the NNTP side, most often iso-8859-1.
+
+billing  password        AX    AX "Johan Billing,Billing,Johan"
+palinuris vulgaris       AX    AX "Palle Kuling"
