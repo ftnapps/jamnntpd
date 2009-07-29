@@ -19,4 +19,3 @@
 #define TRUE 1
 #define FALSE 0
 
-#define min(x,y) (x<y?x:y)

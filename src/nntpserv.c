@@ -77,7 +77,7 @@ uchar *parseinput(struct var *var)
 {
    long s;
 
-	/* Skip whitespace */
+   /* Skip whitespace */
    while(var->input[var->inputpos]==' ')
       var->inputpos++;
 
@@ -95,27 +95,55 @@ uchar *parseinput(struct var *var)
    return(&var->input[s]);
 }
 
-bool jamopenarea(struct var *var,struct group *group)
+bool smapiopenarea(struct var *var,struct group *group)
 {
+   ushort type;
+   uchar *realname;
+   uchar *typename;
+   
    if(group == var->opengroup)
       return(TRUE);
 
-   if(var->openmb)
+   if(var->openarea)
    {
-      JAM_CloseMB(var->openmb);
-      free(var->openmb);
-      var->openmb=NULL;
+      MsgCloseArea(var->openarea);
+      var->openarea=NULL;
       var->opengroup=NULL;
    }
 
-   if(JAM_OpenMB(group->jampath,&var->openmb))
+   if(group->jampath[0] == '!')
    {
-      if(var->openmb)
-         free(var->openmb);
-         
-      var->openmb=NULL;
+      realname=&group->jampath[1];
+      typename="JAM";
+      type=MSGTYPE_JAM;
+   }
+   else if(group->jampath[0] == '$')
+   {
+      realname=&group->jampath[1];
+      typename="Squish";
+      type=MSGTYPE_SQUISH;
+   }
+   else if(group->jampath[0] == '#')
+   {
+      realname=&group->jampath[1];
+      typename="*.msg";
+      type=MSGTYPE_SDM;
+   }
+   else
+   {
+      realname=group->jampath;
+      typename="JAM";
+      type=MSGTYPE_JAM;
+   }
+   
+   if(!group->local && !group->netmail)
+      type |= MSGTYPE_ECHO;
+      
+   if(!(var->openarea=MsgOpenArea(realname,MSGAREA_NORMAL,type)))
+   {
+      os_logwrite("(%s) Failed to open %s messagebase \"%s\"",var->clientid,typename,realname);
+      var->openarea=NULL;
       var->opengroup=NULL;
-      os_logwrite("(%s) Failed to open JAM messagebase \"%s\"",var->clientid,group->jampath);
       return(FALSE);
    }
 
@@ -124,19 +152,13 @@ bool jamopenarea(struct var *var,struct group *group)
    return(TRUE);
 }
 
-bool jamgetminmaxnum(struct var *var,struct group *group,ulong *min,ulong *max,ulong *num)
+bool smapigetminmaxnum(struct var *var,struct group *group,ulong *min,ulong *max,ulong *num)
 {
-   s_JamBaseHeader baseheader;
-
-   if(!(jamopenarea(var,group)))
+   if(!(smapiopenarea(var,group)))
       return(FALSE);
 
-   if(JAM_GetMBSize(var->openmb,num))
-   {
-      os_logwrite("(%s) Failed to get size of JAM area \"%s\"",var->clientid,group->jampath);
-      return(FALSE);
-   }
-
+   *num=MsgGetNumMsg(var->openarea);
+   
    if(*num == 0)
    {
       *min=0;
@@ -145,169 +167,100 @@ bool jamgetminmaxnum(struct var *var,struct group *group,ulong *min,ulong *max,u
       return(TRUE);
    }
    
-   if(JAM_ReadMBHeader(var->openmb,&baseheader))
-   {
-      os_logwrite("(%s) Failed to read header of JAM area \"%s\"",var->clientid,group->jampath);
-      return(FALSE);
-   }
-  
-   *min=baseheader.BaseMsgNum;
-   *max=baseheader.BaseMsgNum+*num-1;
-
+   *min=MsgMsgnToUid(var->openarea,1);
+   *max=MsgMsgnToUid(var->openarea,*num);
+   
    if(group->netmail && cfg_strictnetmail)
    {
-      uchar fromname[100],toname[100],chrs[20],codepage[20],buf[100],*xlatres;
+      uchar fromname[100],toname[100],chrs[20],codepage[20];
+      uchar *ctrl,*str,*xlatres;
       struct xlat *xlat;
-      ulong netmin,netmax,netnum,count,c;
-      int res;
-      s_JamSubPacket* subpack;
-      s_JamMsgHeader header;
-      s_JamSubfield* field;
-      
+      ulong netmin,netmax,netnum,c,ctrllen;
+      HMSG msg;
+      XMSG xmsg;
+            
       netmin=0;
       netmax=0;
       netnum=0;
 
-      for(c=*min;c<=*max && !var->disconnect && !get_server_quit();c++)
+      for(c=1;c<=*num && !var->disconnect && !get_server_quit();c++)
       {
-         res=JAM_ReadMsgHeader(var->openmb,c-baseheader.BaseMsgNum,&header,&subpack);
-
-         if(res == 0)
+         if((msg=MsgOpenMsg(var->openarea,MOPEN_READ,c)))
          {
-            if(!(header.Attribute & MSG_DELETED))
+            ctrllen=MsgGetCtrlLen(msg);
+            ctrl=malloc(ctrllen+1);
+            
+            if(ctrl)
             {
-               count=0;
-
-               fromname[0]=0;
-               toname[0]=0;
-               chrs[0]=0;
-               codepage[0]=0;
-            
-               while((field=JAM_GetSubfield_R(subpack,&count)))
+               if(MsgReadMsg(msg,&xmsg,0,0,NULL,ctrllen,ctrl) != -1)
                {
-                  switch(field->LoID)
+                  mystrncpy(fromname,xmsg.from,100); 
+                  mystrncpy(toname,xmsg.to,100); 
+
+                  chrs[0]=0;
+                  codepage[0]=0;
+               
+                  ctrl[ctrllen]=0;
+
+                  if((str=MsgGetCtrlToken(ctrl,"CHRS")))
                   {
-                     case JAMSFLD_SENDERNAME:
-                        mystrncpy(fromname,field->Buffer,min(field->DatLen+1,100));
-                        break;
-
-                     case JAMSFLD_RECVRNAME:
-                        mystrncpy(toname,field->Buffer,min(field->DatLen+1,100));
-                        break;
-
-                     case JAMSFLD_FTSKLUDGE:
-                        mystrncpy(buf,field->Buffer,min(field->DatLen+1,100));
-
-                        if(strnicmp(buf,"CHRS: ",6)==0)
-                        {
-                           mystrncpy(chrs,&buf[6],20);
-                           if(strchr(chrs,' ')) *strchr(chrs,' ')=0;
-                           strip(chrs);
-                        }
-
-                        if(strnicmp(buf,"CHARSET: ",9)==0)
-                           mystrncpy(chrs,&buf[9],20);
-
-                        if(strnicmp(buf,"CODEPAGE: ",10)==0)
-                           mystrncpy(codepage,&buf[10],20);
-
-                  }
-               }
-            
-               xlat=findreadxlat(var,group,chrs,codepage,NULL);
-
-               if(xlat && xlat->xlattab)
-               {
-                  if((xlatres=xlatstr(fromname,xlat->xlattab)))
-                  {
-                     mystrncpy(fromname,xlatres,100);
-                     free(xlatres);
+                     mystrncpy(chrs,getkludgedata(str),20);
+                     free(str);
+                     stripchrs(chrs);
                   }
    
-                  if((xlatres=xlatstr(toname,xlat->xlattab)))
+                  if((str=MsgGetCtrlToken(ctrl,"CHARSET")))
                   {
-                     mystrncpy(toname,xlatres,100);
-                     free(xlatres);
+                     mystrncpy(chrs,getkludgedata(str),20);
+                     free(str);
+                  }
+      
+                  if((str=MsgGetCtrlToken(ctrl,"CODEPAGE")))
+                  {
+                     mystrncpy(codepage,getkludgedata(str),20);
+                     free(str);
+                  }
+            
+                  xlat=findreadxlat(var,group,chrs,codepage,NULL);
+
+                  if(xlat && xlat->xlattab)
+                  {
+                     if((xlatres=xlatstr(fromname,xlat->xlattab)))
+                     {
+                        mystrncpy(fromname,xlatres,100);
+                        free(xlatres);
+                     }
+   
+                     if((xlatres=xlatstr(toname,xlat->xlattab)))
+                     {
+                        mystrncpy(toname,xlatres,100);
+                        free(xlatres);
+                     }
+                  }
+            
+                  if(matchname(var->realnames,fromname) || matchname(var->realnames,toname)) 
+                  {
+                     if(netmin == 0)
+                        netmin=c;
+                     
+                     netmax=c;
+                     netnum++;
                   }
                }
-            
-               if(matchname(var->realnames,fromname) || matchname(var->realnames,toname)) 
-               {
-                  if(netmin == 0)
-                     netmin=c;
-                     
-                  netmax=c;
-                  netnum++;
-               }
+               
+               free(ctrl);
             }
-         
-            JAM_DelSubPacket(subpack);
          }
+         MsgCloseMsg(msg);
       }
    
-      *min=netmin;
-      *max=netmax;
+      *min=MsgMsgnToUid(var->openarea,netmin);
+      *max=MsgMsgnToUid(var->openarea,netmax);
       *num=netnum;
    }
-   
+      
    return(TRUE);
 }
-
-void readoriginaddr(s_JamBase *mb,ulong offset,ulong len,uchar *addr)
-{
-   ulong d,textpos;
-   uchar originbuf[100];
-   uchar *text;
-   
-   if(!(text=malloc(len+1)))
-      return;
-      
-   if(JAM_ReadMsgText(mb,offset,len,text))
-      return;
-
-   text[len]=0;
-         
-   textpos=0;
-   originbuf[0]=0;
-
-   /* Find origin line */
-                  
-   while(text[textpos])
-   {
-      d=textpos;
-
-      while(text[d] != 13 && text[d] != 0)
-         d++;
-
-      if(text[d] == 13)
-         d++;
-
-      if(d-textpos > 11 && strncmp(&text[textpos]," * Origin: ",11)==0)
-         mystrncpy(originbuf,&text[textpos],min(d-textpos,100));
-
-      textpos=d;
-   }
-
-   if(originbuf[0])
-   {
-      /* Find address part */
-   
-      d=strlen(originbuf);
-
-      while(d>0 && originbuf[d]!='(') 
-         d--;
-
-      if(originbuf[d] == '(')
-      {
-         strcpy(addr,&originbuf[d+1]);
-   
-         if(strchr(addr,')'))
-            *strchr(addr,')')=0;
-      }
-   }
-   
-   free(text);
-}      
 
 void command_list(struct var *var)
 {
@@ -365,7 +318,7 @@ void command_list(struct var *var)
          }
          else
          {
-            if(!jamgetminmaxnum(var,g,&min,&max,&num))
+            if(!smapigetminmaxnum(var,g,&min,&max,&num))
             {
                min=0;
                max=0;
@@ -405,7 +358,7 @@ void command_group(struct var *var)
       return;
    }
 
-   if(!jamgetminmaxnum(var,g,&min,&max,&num))
+   if(!smapigetminmaxnum(var,g,&min,&max,&num))
    {
       socksendtext(var,"503 Local error: Could not get size of messagebase" CRLF);
       return;
@@ -433,7 +386,7 @@ void command_next(struct var *var)
       return;
    }
 
-   if(!jamgetminmaxnum(var,var->currentgroup,&min,&max,&num))
+   if(!smapigetminmaxnum(var,var->currentgroup,&min,&max,&num))
    {
       socksendtext(var,"503 Local error: Could not get size of messagebase" CRLF);
       return;
@@ -467,7 +420,7 @@ void command_last(struct var *var)
       return;
    }
 
-   if(!jamgetminmaxnum(var,var->currentgroup,&min,&max,&num))
+   if(!smapigetminmaxnum(var,var->currentgroup,&min,&max,&num))
    {
       socksendtext(var,"503 Local error: Could not get size of messagebase" CRLF);
       return;
@@ -492,35 +445,26 @@ struct attributename
 };
 
 struct attributename attributenames[] =
-{ { MSG_LOCAL,       "Local"        },
-  { MSG_INTRANSIT,   "InTransit"    },
-  { MSG_PRIVATE,     "Private"      },
-  { MSG_READ,        "Read"         },
-  { MSG_SENT,        "Sent"         },
-  { MSG_KILLSENT,    "KillSent"     },
-  { MSG_ARCHIVESENT, "ArchiveSent"  },
-  { MSG_HOLD,        "Hold"         },
-  { MSG_CRASH,       "Crash"        },
-  { MSG_IMMEDIATE,   "Immediate"    },
-  { MSG_DIRECT,      "Direct"       },
-  { MSG_GATE,        "Gate"         },
-  { MSG_FILEREQUEST, "FReq"         },
-  { MSG_FILEATTACH,  "FAttach"      },
-  { MSG_TRUNCFILE,   "TruncFile"    },
-  { MSG_KILLFILE,    "KillFile"     },
-  { MSG_RECEIPTREQ,  "ReceiptReq"   },
-  { MSG_CONFIRMREQ,  "ConfirmReq"   },
-  { MSG_ORPHAN,      "Orphan"       },
-  { MSG_ENCRYPT,     "Encrypted"    },
-  { MSG_COMPRESS,    "Compressed"   },
-  { MSG_ESCAPED,     "Escaped"      },
-  { MSG_FPU,         "ForcePickup"  },
-  { MSG_TYPELOCAL,   "TypeLocal"    },
-  { MSG_TYPEECHO,    "TypeEcho"     },
-  { MSG_TYPENET,     "TypeNet"      },
-  { MSG_NODISP,      "NoDisp"       },
-  { MSG_LOCKED,      "Locked"       },
-  { MSG_DELETED,     "Deleted"      },
+{ { MSGPRIVATE,     "Private"      },
+  { MSGCRASH,       "Crash"        },
+  { MSGREAD,        "Read"         },
+  { MSGSENT,        "Sent"         },
+  { MSGFILE,        "File"         },
+  { MSGFWD,         "Fwd"          },
+  { MSGORPHAN,      "Orphan"       },
+  { MSGKILL,        "Kill"         },
+  { MSGLOCAL,       "Local"        },
+  { MSGHOLD,        "Hold"         },
+  { MSGXX2,         "Xx2"          },
+  { MSGFRQ,         "Frq"          },
+  { MSGRRQ,         "Rrq"          },
+  { MSGCPT,         "Cpt"          },
+  { MSGARQ,         "Arq"          },
+  { MSGURQ,         "Urq"          },
+  { MSGSCANNED,     "Scanned"      },
+  { MSGUID,         "Uid"          },
+  { MSGIMM,         "Imm"          },
+  { MSGLOCKED,      "Locked"       },
   { 0,               NULL           } };
 
 #define WRAP_WIDTH 72
@@ -646,42 +590,20 @@ void sendtextblock(struct var *var,uchar *text,struct xlat *xlat)
    }
 }
 
-void stripreplyaddr(uchar *str)
-{
-   /* to take care of "full name" <name@domain> formar */
-   
-   uchar *ch;
-   
-   if((ch=strchr(str,'<')))
-   {
-      strcpy(str,ch+1);
-
-      if((ch=strchr(str,'>')))
-         *ch=0;
-    }
-}
-
 void command_abhs(struct var *var,uchar *cmd)
 {
    uchar *article;
-   ulong articlenum;
+   ulong articlenum,smapinum,ctrllen,textlen;
    struct group *group;
-   ulong min,max,num,c,d;
-   uchar datebuf[50];
-   uchar jamfromaddr[100],jamtoaddr[100],replyaddr[100],fromaddr[100];
-   uchar fromname[100],toname[100],subject[100];
+   ulong min,max,num,c,d,e;
+   uchar fromaddr[100],toaddr[100],replyaddr[100],fromname[100],toname[100],subject[100];
    uchar chrs[20],codepage[20],encoding[20],format[20],timezone[20];
-   uchar buf[250];
+   uchar dispname[210],dispfromname[100],disptoname[100],dispaddr[100],buf[200];
    uchar *at,*pc;
-   uchar *text;
+   uchar *text,*ctrl,*str,*xlatres;
    struct xlat *xlat;
-   uchar *xlatres;
-   s_JamBaseHeader baseheader;
-   s_JamSubPacket* subpack;
-   s_JamMsgHeader header;
-   s_JamSubfield* field;
-   int res;
-   ulong count;
+   HMSG msg;
+   XMSG xmsg;
 
    article=parseinput(var);
 
@@ -739,7 +661,17 @@ void command_abhs(struct var *var,uchar *cmd)
 
       articlenum=atol(article);
 
-      jamgetminmaxnum(var,group,&min,&max,&num);
+      if(!smapiopenarea(var,group))
+      {
+         socksendtext(var,"503 Local error: Could not open messagebase" CRLF);
+         return;
+      }
+
+      if(!smapigetminmaxnum(var,var->currentgroup,&min,&max,&num))
+      {
+         socksendtext(var,"503 Local error: Could not get size of messagebase" CRLF);
+         return;
+      }
 
       if(articlenum < min || articlenum > max)
       {
@@ -758,13 +690,11 @@ void command_abhs(struct var *var,uchar *cmd)
       articlenum=atol(article);
       group=var->currentgroup;
 
-      if(!jamgetminmaxnum(var,var->currentgroup,&min,&max,&num))
+      if(!smapigetminmaxnum(var,var->currentgroup,&min,&max,&num))
       {
          socksendtext(var,"503 Local error: Could not get size of messagebase" CRLF);
          return;
       }
-
-      jamgetminmaxnum(var,group,&min,&max,&num);
 
       if(articlenum < min || articlenum > max)
       {
@@ -788,139 +718,144 @@ void command_abhs(struct var *var,uchar *cmd)
       return;
    }
 
-   if(!jamopenarea(var,group))
+   if(!smapiopenarea(var,group))
    {
       socksendtext(var,"503 Local error: Could not open messagebase" CRLF);
       return;
    }
 
-   if(JAM_ReadMBHeader(var->openmb,&baseheader))
+   if(!(smapinum=MsgUidToMsgn(var->openarea,articlenum,UID_EXACT)))
    {
-      os_logwrite("(%s) Could not read messagebase header of \"%s\"",var->clientid,var->opengroup->jampath);
-      socksendtext(var,"503 Local error: Could not read messagebase header" CRLF);
+      socksendtext(var,"503 Local error: Could not find message" CRLF);       
       return;
    }
-
-   res=JAM_ReadMsgHeader(var->openmb,articlenum-baseheader.BaseMsgNum,&header,&subpack);
-
-   if(res != 0 && res != JAM_NO_MESSAGE)
+   
+   if(!(msg=MsgOpenMsg(var->openarea,MOPEN_READ,smapinum)))
    {
-      os_logwrite("(%s) Could not read message %lu in \"%s\"",var->clientid,articlenum,var->opengroup->jampath);
-      socksendtext(var,"503 Local error: Could not read message header" CRLF);
-      JAM_DelSubPacket(subpack);
+      os_logwrite("(%s) Could not open message %lu in \"%s\"",var->clientid,smapinum,var->opengroup->jampath);
+      socksendtext(var,"503 Local error: Could not open message" CRLF);
       return;
    }
+         
+   textlen=MsgGetTextLen(msg);
+   ctrllen=MsgGetCtrlLen(msg);
 
-   if(res == JAM_NO_MESSAGE || (header.Attribute & MSG_DELETED))
+   text=malloc(textlen+1);
+   ctrl=malloc(ctrllen+1);
+   
+   if(!text || !ctrl)
    {
-      socksendtext(var,"503 Message has been deleted" CRLF);
-      JAM_DelSubPacket(subpack);
-      return;
-   }
-
-   if(!(text=malloc(header.TxtLen+1)))
-   {
+      os_logwrite("(%s) Out of memory",var->clientid);
       socksendtext(var,"503 Local error: Out of memory" CRLF);
-      JAM_DelSubPacket(subpack);
+      
+      if(text) free(text);
+      if(ctrl) free(ctrl);
+      MsgCloseMsg(msg);
+      
+      return;
+   }
+   
+   if(MsgReadMsg(msg,&xmsg,0,textlen,text,ctrllen,ctrl) == -1)
+   {
+      os_logwrite("(%s) Could not read message %lu in \"%s\"",var->clientid,smapinum,var->opengroup->jampath);
+      socksendtext(var,"503 Local error: Could not read message" CRLF);
+      
+      free(text);
+      free(ctrl);
+      MsgCloseMsg(msg);
+      
       return;
    }
 
-   if(header.TxtLen)
-   {
-     res=JAM_ReadMsgText(var->openmb,header.TxtOffset,header.TxtLen,text);
-
-     if(res)
-     {
-         socksendtext(var,"503 Local error: Could not read message text" CRLF);
-         JAM_DelSubPacket(subpack);
-         free(text);
-         return;
-     }
-   }
-
-   text[header.TxtLen]=0;
-
+   text[textlen]=0;
+   ctrl[ctrllen]=0;
+      
    fromname[0]=0;
-   jamfromaddr[0]=0;
+   fromaddr[0]=0;
    toname[0]=0;
-   jamtoaddr[0]=0;
+   toaddr[0]=0;
    subject[0]=0;
    replyaddr[0]=0;
    timezone[0]=0;
    chrs[0]=0;
    codepage[0]=0;
 
-   count=0;
+   mystrncpy(fromname,xmsg.from,100); 
+   mystrncpy(toname,xmsg.to,100); 
+   mystrncpy(subject,xmsg.subj,100); 
 
-   while((field=JAM_GetSubfield_R(subpack,&count)))
+   if(group->netmail)
+   {   
+      if(xmsg.orig.point) 
+         sprintf(fromaddr,"%u:%u/%u.%u",
+            xmsg.orig.zone ? xmsg.orig.zone : atoi(group->aka),
+            xmsg.orig.net,
+            xmsg.orig.node,
+            xmsg.orig.point);
+      
+      else 
+         sprintf(fromaddr,"%u:%u/%u",
+            xmsg.orig.zone ? xmsg.orig.zone : atoi(group->aka),
+            xmsg.orig.net,
+            xmsg.orig.node);
+
+      if(xmsg.dest.point) 
+         sprintf(toaddr,"%u:%u/%u.%u",
+            xmsg.dest.zone ? xmsg.dest.zone : atoi(group->aka),
+            xmsg.dest.net,
+            xmsg.dest.node,
+            xmsg.dest.point);
+            
+      else
+         sprintf(toaddr,"%u:%u/%u",
+            xmsg.dest.zone ? xmsg.dest.zone : atoi(group->aka),
+            xmsg.dest.net,
+            xmsg.dest.node);
+   }
+   else if(!group->local)
    {
-      switch(field->LoID)
-      {            
-         case JAMSFLD_SENDERNAME:
-            mystrncpy(fromname,field->Buffer,min(field->DatLen+1,100));
-            break;
-
-         case JAMSFLD_RECVRNAME:
-            mystrncpy(toname,field->Buffer,min(field->DatLen+1,100));
-            break;
-
-         case JAMSFLD_OADDRESS:
-            mystrncpy(jamfromaddr,field->Buffer,min(field->DatLen+1,100));
-            break;
-
-         case JAMSFLD_DADDRESS:
-            mystrncpy(jamtoaddr,field->Buffer,min(field->DatLen+1,100));
-            break;
-
-         case JAMSFLD_SUBJECT:
-            mystrncpy(subject,field->Buffer,min(field->DatLen+1,100));
-            break;
-
-         case JAMSFLD_TZUTCINFO:
-            mystrncpy(timezone,field->Buffer,min(field->DatLen+1,20));
-            break;
-
-         case JAMSFLD_FTSKLUDGE:
-            mystrncpy(buf,field->Buffer,min(field->DatLen+1,100));
-         
-            if(strnicmp(buf,"REPLYADDR ",10)==0)
-               mystrncpy(replyaddr,&buf[10],100);
-
-            if(strnicmp(buf,"REPLYADDR: ",11)==0)
-               mystrncpy(replyaddr,&buf[11],100);
-
-            if(strnicmp(buf,"TZUTC: ",7)==0)
-               mystrncpy(timezone,&buf[7],20);
-
-            if(strnicmp(buf,"TZUTCINFO: ",11)==0)
-               mystrncpy(timezone,&buf[11],20);
-
-            if(strnicmp(buf,"CHRS: ",6)==0)
-            {
-               mystrncpy(chrs,&buf[6],20);
-               if(strchr(chrs,' ')) *strchr(chrs,' ')=0;
-               strip(chrs);
-            }
-
-            if(strnicmp(buf,"CHARSET: ",9)==0)
-            {
-               mystrncpy(chrs,&buf[9],20);
-               strip(chrs);
-            }
-
-            if(strnicmp(buf,"CODEPAGE: ",10)==0)
-            {
-               mystrncpy(codepage,&buf[10],20);
-               strip(codepage);
-            }
-            break;
-      }
+      extractorigin(text,fromaddr);
+   }
+   
+   if((str=MsgGetCtrlToken(ctrl,"CHRS")))
+   {
+      mystrncpy(chrs,getkludgedata(str),20);
+      free(str);
+      stripchrs(chrs);
+   }
+   
+   if((str=MsgGetCtrlToken(ctrl,"CHARSET")))
+   {
+      mystrncpy(chrs,getkludgedata(str),20);
+      free(str);
+   }
+   
+   if((str=MsgGetCtrlToken(ctrl,"CODEPAGE")))
+   {
+      mystrncpy(codepage,getkludgedata(str),20);
+      free(str);
+   }
+   
+   if((str=MsgGetCtrlToken(ctrl,"TZUTC")))
+   {
+      mystrncpy(timezone,getkludgedata(str),20);
+      free(str);
    }
 
-   if(cfg_readorigin && !group->netmail && !group->local)
-      readoriginaddr(var->openmb,header.TxtOffset,header.TxtLen,jamfromaddr);
+   if((str=MsgGetCtrlToken(ctrl,"TZUTCINFO")))
+   {
+      mystrncpy(timezone,getkludgedata(str),20);
+      free(str);
+   }
+      
+   if((str=MsgGetCtrlToken(ctrl,"REPLYADDR")))
+   {
+      mystrncpy(replyaddr,getkludgedata(str),100);
+      free(str);
+   }
    
-   stripreplyaddr(replyaddr);
+   if(replyaddr[0])
+      stripreplyaddr(replyaddr);
       
    xlat=findreadxlat(var,group,chrs,codepage,NULL);
 
@@ -953,11 +888,24 @@ void command_abhs(struct var *var,uchar *cmd)
       if(!matchname(var->realnames,fromname) && !matchname(var->realnames,toname)) 
       {
          socksendtext(var,"503 Access denied" CRLF);
-         JAM_DelSubPacket(subpack);
+
          free(text);
+         free(ctrl);
+         MsgCloseMsg(msg);
+
          return;
       }
    }   
+
+   if(!(xlat && xlat->keepsoftcr))
+   {
+      d=0;
+            
+      for(c=0;text[c];c++)
+         if(text[c] != 0x8d) text[d++]=text[c];
+            
+      text[d]=0;
+   }
       
    if(stricmp(cmd,"ARTICLE")==0)
       sockprintf(var,"220 %ld <%ld$%s@JamNNTPd> Article retrieved - Head and body follow" CRLF,articlenum,articlenum,group->tagname);
@@ -970,108 +918,59 @@ void command_abhs(struct var *var,uchar *cmd)
 
    if(stricmp(cmd,"ARTICLE") == 0 || stricmp(cmd,"HEAD") == 0)
    {
-      if(replyaddr[0]) strcpy(fromaddr,replyaddr);
-      else             strcpy(fromaddr,jamfromaddr);
-            
-      if(fromaddr[0] == 0) strcpy(fromaddr,"unknown");
-      if(fromname[0] == 0) strcpy(fromname,"unknown");
-      if(toname[0] == 0)   strcpy(toname,"(none)");
-      
-      makedate(header.DateWritten,datebuf,timezone);
+      if(fromaddr[0] == 0) 
+         strcpy(fromaddr,"unknown@unknown");
 
+      if(fromname[0] == 0) strcpy(dispfromname,"unknown");
+      else                 strcpy(dispfromname,fromname);
+
+      if(toname[0] == 0) strcpy(disptoname,"(none)");
+      else               strcpy(disptoname,toname);
+      
+      if(var->opt_showto) sprintf(dispname,"%s -> %s",dispfromname,disptoname);
+      else                strcpy(dispname,dispfromname);
+
+      if(replyaddr[0]) strcpy(dispaddr,replyaddr);
+      else             strcpy(dispaddr,fromaddr);
+      
       sockprintf(var,"Path: JamNNTPd!not-for-mail" CRLF);
 
-      if(var->opt_showto) sprintf(buf,"%s -> %s",fromname,toname);
-      else                strcpy(buf,fromname);
-
-      mimesendheaderline(var,"From",buf,chrs,fromaddr,cfg_noencode);
-
+      mimesendheaderline(var,"From",dispname,chrs,dispaddr,cfg_noencode);
       mimesendheaderline(var,"X-Comment-To",toname,chrs,NULL,cfg_noencode);
       sockprintf(var,"Newsgroups: %s" CRLF,group->tagname);
       mimesendheaderline(var,"Subject",subject,chrs,NULL,cfg_noencode);
 
-      sockprintf(var,"Date: %s" CRLF,datebuf);
+      makedate(&xmsg.date_written,buf,timezone);
+      sockprintf(var,"Date: %s" CRLF,buf); 
+      
       sockprintf(var,"Message-ID: <%ld$%s@JamNNTPd>" CRLF,articlenum,group->tagname);
 
-      if(header.ReplyTo)
-         sockprintf(var,"References: <%ld$%s@JamNNTPd>" CRLF,header.ReplyTo,group->tagname);
+      if(xmsg.replyto)
 
-      if(jamfromaddr[0])
-         sockprintf(var,"X-JAM-From: %s <%s>" CRLF,fromname,jamfromaddr);
+         sockprintf(var,"References: <%ld$%s@JamNNTPd>" CRLF,xmsg.replyto,group->tagname);
       
-      else
-         sockprintf(var,"X-JAM-From: %s" CRLF,fromname);
-         
-      if(toname[0] || jamtoaddr[0])
-      {
-         if(jamtoaddr[0])
-            sockprintf(var,"X-JAM-To: %s <%s>" CRLF,toname,jamtoaddr);
+      sprintf(fromaddr,"%u:%u/%u.%u",xmsg.orig.zone,xmsg.orig.net,xmsg.orig.node,xmsg.orig.point);
+      sprintf(toaddr,"%u:%u/%u.%u",xmsg.dest.zone,xmsg.dest.net,xmsg.dest.node,xmsg.dest.point);
 
-         else
-            sockprintf(var,"X-JAM-To: %s" CRLF,toname);
-      }
+      /* Dump header */
+      
+      sockprintf(var,"X-SMAPI-From: %s <%s>" CRLF,fromname,fromaddr);
+      sockprintf(var,"X-SMAPI-To: %s <%s>" CRLF,toname,toaddr);
 
-      count=0;
+      sc_time((union stamp_combo *)&xmsg.date_written,buf);
+      sockprintf(var,"X-SMAPI-DateWritten: %s" CRLF,buf);
 
-      while((field=JAM_GetSubfield_R(subpack,&count)))
-      {
-         switch(field->LoID)
-         {
-            case JAMSFLD_MSGID:
-               mystrncpy(buf,field->Buffer,min(field->DatLen+1,200));
-               sockprintf(var,"X-JAM-MSGID: %s" CRLF,buf);
-               break;
+      sc_time((union stamp_combo *)&xmsg.date_arrived,buf);
+      sockprintf(var,"X-SMAPI-DateArrived: %s" CRLF,buf);
 
-            case JAMSFLD_REPLYID:
-               mystrncpy(buf,field->Buffer,min(field->DatLen+1,200));
-               sockprintf(var,"X-JAM-REPLYID: %s" CRLF,buf);
-               break;
-
-            case JAMSFLD_PID:
-               mystrncpy(buf,field->Buffer,min(field->DatLen+1,200));
-               sockprintf(var,"X-JAM-PID: %s" CRLF,buf);
-               break;
-
-            case JAMSFLD_FLAGS:
-               mystrncpy(buf,field->Buffer,min(field->DatLen+1,200));
-               sockprintf(var,"X-JAM-FLAGS: %s" CRLF,buf);
-               break;
-
-            case JAMSFLD_TRACE:
-               mystrncpy(buf,field->Buffer,min(field->DatLen+1,200));
-               sockprintf(var,"X-JAM-TRACE: %s" CRLF,buf);
-               break;
-
-            case JAMSFLD_TZUTCINFO:
-               mystrncpy(buf,field->Buffer,min(field->DatLen+1,200));
-               sockprintf(var,"X-JAM-TZUTCINFO: %s" CRLF,buf);
-               break;
-
-            case JAMSFLD_SEENBY2D:
-               mystrncpy(buf,field->Buffer,min(field->DatLen+1,200));
-               sockprintf(var,"X-JAM-SEENBY2D: %s" CRLF,buf);
-               break;
-
-            case JAMSFLD_PATH2D:
-               mystrncpy(buf,field->Buffer,min(field->DatLen+1,200));
-               sockprintf(var,"X-JAM-PATH2D: %s" CRLF,buf);
-               break;
-
-            case JAMSFLD_FTSKLUDGE:
-               mystrncpy(buf,field->Buffer,min(field->DatLen+1,200));
-               sockprintf(var,"X-JAM-FTSKLUDGE: %s" CRLF,buf);
-               break;
-         }
-      }
-
-      if(header.Attribute)
+      if(xmsg.attr)
       {
          int c;
 
-         strcpy(buf,"X-JAM-Attributes:");
+         strcpy(buf,"X-SMAPI-Attributes:");
 
          for(c=0;attributenames[c].name;c++)
-            if(header.Attribute & attributenames[c].attr)
+            if(xmsg.attr	 & attributenames[c].attr)
             {
                strcat(buf," ");
                strcat(buf,attributenames[c].name);
@@ -1081,6 +980,77 @@ void command_abhs(struct var *var,uchar *cmd)
          socksendtext(var,buf);
       }
 
+      /* Dump kludges */
+      
+      c=0;
+
+      while(ctrl[c])
+      {
+         while(ctrl[c] == 1) 
+            c++;
+
+         d=c;
+
+         while(ctrl[d] != 0 && ctrl[d] != 1) 
+            d++;
+
+         if(ctrl[d] == 1)
+            ctrl[d++] = 0;
+
+         sockprintf(var,"X-SMAPI-Control: @%.100s" CRLF,&ctrl[c]);
+
+         c=d;
+      }
+
+      /* Dump SEEN-BY and any other kludges, remove them from rest of the text */
+
+      c=0;
+      e=0;
+      
+      while(text[c])
+      {
+         if(strncmp(&text[c],"SEEN-BY:",8) == 0)
+         {
+            d=c;
+
+            while(text[d] != 0 && text[d] != 13) 
+               d++;
+            
+            if(text[d] == 13)
+               text[d++] = 0;
+
+            sockprintf(var,"X-SMAPI-Control: %.100s" CRLF,&text[c]);
+               
+            c=d;
+         }
+         else if(text[c] == 1)
+         {
+            c++;
+
+            d=c;
+
+            while(text[d] != 0 && text[d] != 13) 
+               d++;
+            
+            if(text[d] == 13)
+               text[d++] = 0;
+
+            sockprintf(var,"X-SMAPI-Control: @%.100s" CRLF,&text[c]);
+               
+            c=d;
+         }
+         else
+         {
+            while(text[c] != 0 && text[c] != 13) 
+               text[e++]=text[c++];
+               
+            if(text[c] == 13) 
+               text[e++]=text[c++];
+          }
+      }
+      
+      text[e]=0;
+      
       /* MIME headers */
 
       socksendtext(var,"MIME-Version: 1.0" CRLF);
@@ -1109,54 +1079,37 @@ void command_abhs(struct var *var,uchar *cmd)
       socksendtext(var,CRLF);
 
    if(stricmp(cmd,"ARTICLE") == 0 || stricmp(cmd,"BODY") == 0)
-   {
-      if(header.TxtLen)
-      {
-         if(!(xlat && xlat->keepsoftcr))
-         {
-            d=0;
-            
-            for(c=0;text[c];c++)
-               if(text[c] != 0x8d) text[d++]=text[c];
-            
-            text[d]=0;
-         }
-         
-         sendtextblock(var,text,xlat);
-      }     
-   }
+      sendtextblock(var,text,xlat);
    
    socksendtext(var,"." CRLF);
 
-   JAM_DelSubPacket(subpack);
    free(text);
+   free(ctrl);
+   MsgCloseMsg(msg);
 }
 
 void command_xover(struct var *var)
 {
    uchar *article,*dash;
-   ulong min,max,num;
+   ulong min,max,num,smapinum,ctrllen,textlen;
    ulong first,last,c;
-   uchar msgid[150],reply[150],buf[250],chrs[20],codepage[20],datebuf[50],timezone[20];
+   uchar msgid[150],reply[150],chrs[20],codepage[20],datebuf[50],timezone[20];
    uchar fromname[100],toname[100],fromaddr[100],subject[100],replyaddr[100];
    uchar mimefrom[1000],mimesubj[1000],xoverres[2500];
+   uchar dispname[210],dispfromname[100],disptoname[100],dispaddr[100];
    struct xlat *xlat;
-   uchar *xlatres;
-   s_JamBaseHeader baseheader;
-   s_JamSubPacket* subpack;
-   s_JamMsgHeader header;
-   s_JamSubfield* field;
-   int res;
-   ulong count;
+   uchar *xlatres,*str,*ctrl,*text;
    bool access;
-
+   HMSG msg;
+   XMSG xmsg;
+   
    if(!var->currentgroup)
    {
       socksendtext(var,"412 No newsgroup selected" CRLF);
       return;
    }
 
-   jamgetminmaxnum(var,var->currentgroup,&min,&max,&num);
+   smapigetminmaxnum(var,var->currentgroup,&min,&max,&num);
 
    article=parseinput(var);
 
@@ -1204,16 +1157,9 @@ void command_xover(struct var *var)
       return;
    }
 
-   if(!jamopenarea(var,var->currentgroup))
+   if(!smapiopenarea(var,var->currentgroup))
    {
       socksendtext(var,"503 Local error: Could not open messagebase" CRLF);
-      return;
-   }
-
-   if(JAM_ReadMBHeader(var->openmb,&baseheader))
-   {
-      os_logwrite("(%s) Could not read messagebase header of \"%s\"",var->clientid,var->opengroup->jampath);
-      socksendtext(var,"503 Local error: Could not read messagebase header" CRLF);
       return;
    }
 
@@ -1221,158 +1167,181 @@ void command_xover(struct var *var)
 
    for(c=first;c<=last && !var->disconnect && !get_server_quit();c++)
    {
-      res=JAM_ReadMsgHeader(var->openmb,c-baseheader.BaseMsgNum,&header,&subpack);
-
-      if(res == 0)
+      if((smapinum=MsgUidToMsgn(var->openarea,c,UID_EXACT)))
       {
-         if(!(header.Attribute & MSG_DELETED))
+         if((msg=MsgOpenMsg(var->openarea,MOPEN_READ,smapinum)))
          {
-            count=0;
-
-            fromname[0]=0;
-            fromaddr[0]=0;
-            subject[0]=0;
-            toname[0]=0;
-            chrs[0]=0;
-            codepage[0]=0;
-            replyaddr[0]=0;
-            timezone[0]=0;
+            ctrllen=MsgGetCtrlLen(msg);
+            textlen=MsgGetTextLen(msg);
+         
+            ctrl=malloc(ctrllen+1);
+            text=malloc(textlen+1);
             
-            while((field=JAM_GetSubfield_R(subpack,&count)))
+            if(ctrl && text)
             {
-               switch(field->LoID)
+               if(MsgReadMsg(msg,&xmsg,0,textlen,text,ctrllen,ctrl) != -1)
                {
-                  case JAMSFLD_OADDRESS:
-                     mystrncpy(fromaddr,field->Buffer,min(field->DatLen+1,100));
-                     break;
-
-                  case JAMSFLD_SENDERNAME:
-                     mystrncpy(fromname,field->Buffer,min(field->DatLen+1,100));
-                     break;
-
-                  case JAMSFLD_RECVRNAME:
-                     mystrncpy(toname,field->Buffer,min(field->DatLen+1,100));
-                     break;
-
-                  case JAMSFLD_SUBJECT:
-                     mystrncpy(subject,field->Buffer,min(field->DatLen+1,100));
-                     break;
-
-                  case JAMSFLD_TZUTCINFO:
-                     mystrncpy(timezone,field->Buffer,min(field->DatLen+1,20));
-                     break;
-
-                  case JAMSFLD_FTSKLUDGE:
-                     mystrncpy(buf,field->Buffer,min(field->DatLen+1,100));
-
-                     if(strnicmp(buf,"CHRS: ",6)==0)
+                  ctrl[ctrllen]=0;
+                  text[textlen]=0;
+                     
+                  fromname[0]=0;
+                  fromaddr[0]=0;
+                  toname[0]=0;
+                  subject[0]=0;
+                  replyaddr[0]=0;
+                  timezone[0]=0;
+                  chrs[0]=0;
+                  codepage[0]=0;
+               
+                  mystrncpy(fromname,xmsg.from,100); 
+                  mystrncpy(toname,xmsg.to,100); 
+                  mystrncpy(subject,xmsg.subj,100); 
+               
+                  if(var->currentgroup->netmail)
+                  {   
+                     if(xmsg.orig.point) 
+                        sprintf(fromaddr,"%u:%u/%u.%u",
+                           xmsg.orig.zone ? xmsg.orig.zone : atoi(var->currentgroup->aka),
+                           xmsg.orig.net,
+                           xmsg.orig.node,
+                           xmsg.orig.point);
+                           
+                     else
+                        sprintf(fromaddr,"%u:%u/%u",
+                           xmsg.orig.zone ? xmsg.orig.zone : atoi(var->currentgroup->aka),
+                           xmsg.orig.net,
+                           xmsg.orig.node);
+                  }
+                  else if(!var->currentgroup->local)
+                  {
+                     extractorigin(text,fromaddr);
+                  }
+                  
+                  if((str=MsgGetCtrlToken(ctrl,"CHRS")))
+                  {
+                     mystrncpy(chrs,getkludgedata(str),20);
+                     free(str);
+                     stripchrs(chrs);
+                  }
+                  
+                  if((str=MsgGetCtrlToken(ctrl,"CHARSET")))
+                  {
+                     mystrncpy(chrs,getkludgedata(str),20);
+                     free(str);
+                  }
+                  
+                  if((str=MsgGetCtrlToken(ctrl,"CODEPAGE")))
+                  {
+                     mystrncpy(codepage,getkludgedata(str),20);
+                     free(str);
+                  }
+                  
+                  if((str=MsgGetCtrlToken(ctrl,"TZUTC")))
+                  {
+                     mystrncpy(timezone,getkludgedata(str),20);
+                     free(str);
+                  }
+               
+                  if((str=MsgGetCtrlToken(ctrl,"TZUTCINFO")))
+                  {
+                     mystrncpy(timezone,getkludgedata(str),20);
+                     free(str);
+                  }
+                     
+                  if((str=MsgGetCtrlToken(ctrl,"REPLYADDR")))
+                  {
+                     mystrncpy(replyaddr,getkludgedata(str),100);
+                     free(str);
+                  }
+                  
+                  if(replyaddr[0])
+                     stripreplyaddr(replyaddr);
+                     
+                  xlat=findreadxlat(var,var->currentgroup,chrs,codepage,NULL);
+               
+                  if(xlat) strcpy(chrs,xlat->tochrs);
+                  else     strcpy(chrs,"unknown-8bit");
+               
+                  if(xlat && xlat->xlattab)
+                  {
+                     if((xlatres=xlatstr(fromname,xlat->xlattab)))
                      {
-                        mystrncpy(chrs,&buf[6],20);
-                        if(strchr(chrs,' ')) *strchr(chrs,' ')=0;
-                        strip(chrs);
+                        mystrncpy(fromname,xlatres,100);
+                        free(xlatres);
                      }
+               
+                     if((xlatres=xlatstr(toname,xlat->xlattab)))
+                     {
+                        mystrncpy(toname,xlatres,100);
+                        free(xlatres);
+                     }
+               
+                     if((xlatres=xlatstr(subject,xlat->xlattab)))
+                     {
+                        mystrncpy(subject,xlatres,100);
+                        free(xlatres);
+                     }
+                  }         
+                  
+                  access=TRUE;
+            
+                  if(var->currentgroup->netmail)
+                  {
+                     if(!matchname(var->realnames,fromname) && !matchname(var->realnames,toname)) 
+                        access=FALSE;
+                  }
+            
+                  if(access)
+                  {
+                     if(fromaddr[0] == 0) 
+                        strcpy(fromaddr,"unknown@unknown");
 
-                     if(strnicmp(buf,"CHARSET: ",9)==0)
-                        mystrncpy(chrs,&buf[9],20);
-
-                     if(strnicmp(buf,"CODEPAGE: ",10)==0)
-                        mystrncpy(codepage,&buf[10],20);
-
-                     if(strnicmp(buf,"REPLYADDR ",10)==0)
-                        mystrncpy(replyaddr,&buf[10],100);
-
-                     if(strnicmp(buf,"REPLYADDR: ",11)==0)
-                        mystrncpy(replyaddr,&buf[11],100);
-
-                     if(strnicmp(buf,"TZUTC: ",7)==0)
-                        mystrncpy(timezone,&buf[7],20);
-
-                     if(strnicmp(buf,"TZUTCINFO: ",11)==0)
-                        mystrncpy(timezone,&buf[11],20);
+                     if(fromname[0] == 0) strcpy(dispfromname,"unknown");
+                     else                 strcpy(dispfromname,fromname);
+               
+                     if(toname[0] == 0) strcpy(disptoname,"(none)");
+                     else               strcpy(disptoname,toname);
+                     
+                     if(var->opt_showto) sprintf(dispname,"%s -> %s",dispfromname,disptoname);
+                     else                strcpy(dispname,dispfromname);
+               
+                     if(replyaddr[0]) strcpy(dispaddr,replyaddr);
+                     else             strcpy(dispaddr,fromaddr);
+                  
+                     makedate(&xmsg.date_written,datebuf,timezone);
+                  
+                     sprintf(msgid,"<%ld$%s@JamNNTPd>",c,var->currentgroup->tagname);
+      
+                     reply[0]=0;
+      
+                     if(xmsg.replyto)
+                        sprintf(reply,"<%ld$%s@JamNNTPd>",xmsg.replyto,var->currentgroup->tagname);
+      
+                     mimemakeheaderline(mimefrom,1000,"From",dispname,chrs,dispaddr,cfg_noencode);
+                     mimemakeheaderline(mimesubj,1000,"Subject",subject,chrs,NULL,cfg_noencode);
+      
+                     strcpy(mimefrom,&mimefrom[6]);
+                     strcpy(mimesubj,&mimesubj[9]);
+      
+                     stripctrl(mimesubj);
+                     stripctrl(mimefrom);
+      
+                     sprintf(xoverres,"%ld\t%s\t%s\t%s\t%s\t%s\t\t" CRLF,
+                           c,mimesubj,mimefrom,datebuf,msgid,reply);
+      
+                     socksendtext(var,xoverres);
+                  }
                }
-            }
-
-            if(cfg_readorigin && !var->currentgroup->netmail && !var->currentgroup->local)
-               readoriginaddr(var->openmb,header.TxtOffset,header.TxtLen,fromaddr);
+            }      
             
-            stripreplyaddr(replyaddr);
+            if(ctrl) free(ctrl);               
+            if(text) free(text);               
             
-            xlat=findreadxlat(var,var->currentgroup,chrs,codepage,NULL);
-
-            if(xlat) strcpy(chrs,xlat->tochrs);
-            else     strcpy(chrs,"unknown-8bit");
-            
-            if(xlat && xlat->xlattab)
-            {
-               if((xlatres=xlatstr(fromname,xlat->xlattab)))
-               {
-                  mystrncpy(fromname,xlatres,100);
-                  free(xlatres);
-               }
-
-               if((xlatres=xlatstr(toname,xlat->xlattab)))
-               {
-                  mystrncpy(toname,xlatres,100);
-                  free(xlatres);
-               }
-
-               if((xlatres=xlatstr(subject,xlat->xlattab)))
-               {
-                  mystrncpy(subject,xlatres,100);
-                  free(xlatres);
-               }
-            }
-            
-            access=TRUE;
-            
-            if(var->currentgroup->netmail)
-            {
-               if(!matchname(var->realnames,fromname) && !matchname(var->realnames,toname)) 
-                  access=FALSE;
-            }
-            
-            if(access)
-            {
-               if(fromaddr[0] == 0) strcpy(fromaddr,"unknown");
-               if(fromname[0] == 0) strcpy(fromname,"unknown");
-               if(toname[0] == 0)   strcpy(toname,"(none)");
-
-               makedate(header.DateWritten,datebuf,timezone);
-
-               sprintf(msgid,"<%ld$%s@JamNNTPd>",c,var->currentgroup->tagname);
-
-               reply[0]=0;
-
-               if(header.ReplyTo)
-                  sprintf(reply,"<%ld$%s@JamNNTPd>",header.ReplyTo,var->currentgroup->tagname);
-
-               if(var->opt_showto)
-               {
-                  sprintf(buf,"%s -> %s",fromname,toname);
-                  mystrncpy(fromname,buf,100);
-               }
-   
-               if(replyaddr[0]) mimemakeheaderline(mimefrom,1000,"From",fromname,chrs,replyaddr,cfg_noencode);
-               else             mimemakeheaderline(mimefrom,1000,"From",fromname,chrs,fromaddr,cfg_noencode);
-
-               mimemakeheaderline(mimesubj,1000,"Subject",subject,chrs,NULL,cfg_noencode);
-
-               strcpy(mimefrom,&mimefrom[6]);
-               strcpy(mimesubj,&mimesubj[9]);
-
-               stripctrl(mimesubj);
-               stripctrl(mimefrom);
-
-               sprintf(xoverres,"%ld\t%s\t%s\t%s\t%s\t%s\t\t" CRLF,
-                     c,mimesubj,mimefrom,datebuf,msgid,reply);
-
-               socksendtext(var,xoverres);
-            }
-         }
-         JAM_DelSubPacket(subpack);
+            MsgCloseMsg(msg);
+         }      
       }
    }
-
+   
    socksendtext(var,"." CRLF);
 }
 
@@ -1449,34 +1418,17 @@ void unbackslashquote(uchar *text)
    text[d]=0;
 }
 
-void addjamfield(s_JamSubPacket *SubPacket_PS,ulong fieldnum,uchar *fielddata)
-{
-   s_JamSubfield	Subfield_S;
-
-   Subfield_S.LoID   = fieldnum;
-   Subfield_S.HiID   = 0;
-   Subfield_S.DatLen = strlen(fielddata);
-   Subfield_S.Buffer = fielddata;
-
-   JAM_PutSubfield( SubPacket_PS, &Subfield_S);
-}
-
-
 void getparentinfo(struct var *var,uchar *article,uchar *currentgroup,uchar *msgid,uchar *fromname,uchar *fromaddr,ulong *msgnum,struct xlat *postxlat,bool readorigin)
 {
    uchar *at,*pc;
    struct group *group;
-   ulong articlenum;
-   s_JamBaseHeader baseheader;
-   s_JamSubPacket* subpack;
-   s_JamMsgHeader header;
-   s_JamSubfield* field;
-   int res;
-   ulong count;
-   uchar buf[100],jam_fromname[100],jam_fromaddr[100],jam_toname[100],jam_msgid[100],jam_chrs[20],jam_codepage[20];
+   uchar *xlatres,*text,*ctrl,*str;
+   ulong articlenum,smapinum,ctrllen,textlen;
+   uchar jam_fromname[100],jam_fromaddr[100],jam_toname[100],jam_msgid[100],jam_chrs[20],jam_codepage[20];
    struct xlat *xlat;
-   uchar *xlatres;
-         
+   HMSG msg;
+   XMSG xmsg;
+    
    msgid[0]=0;
    fromname[0]=0;
    fromaddr[0]=0;
@@ -1515,78 +1467,110 @@ void getparentinfo(struct var *var,uchar *article,uchar *currentgroup,uchar *msg
 
    articlenum=atol(article);
 
-   /* Only set parent message number if in the same group */
-      
-   if(stricmp(pc,currentgroup) == 0) 
-      *msgnum=articlenum;
-
    /* Read parent message */
    
-   if(!jamopenarea(var,group))
+   if(!smapiopenarea(var,group))
       return;
 
-   if(JAM_ReadMBHeader(var->openmb,&baseheader))
+   if(!(smapinum=MsgUidToMsgn(var->openarea,articlenum,UID_EXACT)))
+      return;
+      
+   if(!(msg=MsgOpenMsg(var->openarea,MOPEN_READ,smapinum)))
    {
-      os_logwrite("(%s) Could not read messagebase header of \"%s\"",var->clientid,var->opengroup->jampath);
+      os_logwrite("(%s) Could not open message %lu in \"%s\"",var->clientid,smapinum,var->opengroup->jampath);
+      socksendtext(var,"503 Local error: Could not open message" CRLF);
+      return;
+   }
+         
+   textlen=MsgGetTextLen(msg);
+   ctrllen=MsgGetCtrlLen(msg);
+
+   text=malloc(textlen+1);
+   ctrl=malloc(ctrllen+1);
+   
+   if(!text || !ctrl)
+   {
+      if(text) free(text);
+      if(ctrl) free(ctrl);
+      MsgCloseMsg(msg);
+      return;
+   }
+   
+   if(MsgReadMsg(msg,&xmsg,0,textlen,text,ctrllen,ctrl) == -1)
+   {
+      os_logwrite("(%s) Could not read message %lu in \"%s\"",var->clientid,smapinum,var->opengroup->jampath);
+      socksendtext(var,"503 Local error: Could not read message" CRLF);
+      
+      free(text);
+      free(ctrl);
+      MsgCloseMsg(msg);
+      
       return;
    }
 
-   res=JAM_ReadMsgHeader(var->openmb,articlenum-baseheader.BaseMsgNum,&header,&subpack);
+   text[textlen]=0;
+   ctrl[ctrllen]=0;
+      
+   if(stricmp(pc,currentgroup) == 0) 
+      *msgnum=articlenum;   /* Only set parent message number if in the same group */
 
-   if(res != 0 && res != JAM_NO_MESSAGE)
-   {
-      os_logwrite("(%s) Could not read message %lu in \"%s\"",var->clientid,articlenum,var->opengroup->jampath);
-      JAM_DelSubPacket(subpack);
-      return;
-   }
-
-   if(res == JAM_NO_MESSAGE)
-   {
-      JAM_DelSubPacket(subpack);
-      return;
-   }
-
-   count=0;
-
-   jam_fromname[0]=0;
-   jam_toname[0]=0;
    jam_msgid[0]=0;
    jam_chrs[0]=0;
    jam_codepage[0]=0;   
-   jam_fromaddr[0]=0;
+
+   mystrncpy(jam_fromname,xmsg.from,100); 
+   mystrncpy(jam_toname,xmsg.to,100); 
+
+   if(group->netmail)
+   {   
+      if(xmsg.orig.point) 
+         sprintf(jam_fromaddr,"%u:%u/%u.%u",
+            xmsg.orig.zone ? xmsg.orig.zone : atoi(group->aka),
+            xmsg.orig.net,
+            xmsg.orig.node,
+            xmsg.orig.point);
       
-   while((field=JAM_GetSubfield_R(subpack,&count)))
+      else 
+         sprintf(jam_fromaddr,"%u:%u/%u",
+            xmsg.orig.zone ? xmsg.orig.zone : atoi(group->aka),
+            xmsg.orig.net,
+            xmsg.orig.node);
+   }
+   else if(!group->local)
    {
-      if(field->LoID == JAMSFLD_MSGID)
-         mystrncpy(jam_msgid,field->Buffer,min(field->DatLen+1,100));
-
-      if(field->LoID == JAMSFLD_SENDERNAME)
-         mystrncpy(jam_fromname,field->Buffer,min(field->DatLen+1,100));
-
-      if(field->LoID == JAMSFLD_OADDRESS)
-         mystrncpy(jam_fromaddr,field->Buffer,min(field->DatLen+1,100));
-      
-      if(field->LoID == JAMSFLD_RECVRNAME)
-         mystrncpy(jam_toname,field->Buffer,min(field->DatLen+1,100));
-      
-      if(field->LoID == JAMSFLD_FTSKLUDGE)
-      {
-         mystrncpy(buf,field->Buffer,min(field->DatLen+1,100));
-
-         if(strnicmp(buf,"CHRS: ",6)==0)
-         {
-            mystrncpy(jam_chrs,&buf[6],20);
-            if(strchr(jam_chrs,' ')) *strchr(jam_chrs,' ')=0;
-            strip(jam_chrs);
-         }
-
-         if(strnicmp(buf,"CHARSET: ",9)==0)
-            mystrncpy(jam_chrs,&buf[9],20);
-
-         if(strnicmp(buf,"CODEPAGE: ",10)==0)
-            mystrncpy(jam_codepage,&buf[10],20);
-      }
-   }                     
+      extractorigin(text,fromaddr);
+   }
+   else
+   {
+      strcpy(jam_fromaddr,"unknown@unknown");
+   }            
+   
+   if((str=MsgGetCtrlToken(ctrl,"CHRS")))
+   {
+      mystrncpy(jam_chrs,getkludgedata(str),20);
+      free(str);
+      stripchrs(jam_chrs);
+   }
+   
+   if((str=MsgGetCtrlToken(ctrl,"CHARSET")))
+   {
+      mystrncpy(jam_chrs,getkludgedata(str),20);
+      free(str);
+   }
+   
+   if((str=MsgGetCtrlToken(ctrl,"CODEPAGE")))
+   {
+      mystrncpy(jam_codepage,getkludgedata(str),20);
+      free(str);
+   }
+   
+   if((str=MsgGetCtrlToken(ctrl,"MSGID")))
+   {
+      mystrncpy(jam_msgid,getkludgedata(str),100);
+      free(str);
+   }
+   
+   MsgCloseMsg(msg);
    
    xlat=findreadxlat(var,group,jam_chrs,jam_codepage,postxlat->fromchrs);
 
@@ -1608,15 +1592,9 @@ void getparentinfo(struct var *var,uchar *article,uchar *currentgroup,uchar *msg
    if(group->netmail)
    {
       if(!matchname(var->realnames,jam_fromname) && !matchname(var->realnames,jam_toname)) 
-      {
-         JAM_DelSubPacket(subpack);
          return;
-      }
    }
    
-   if(readorigin && !group->netmail && !group->local && header.TxtLen)
-      readoriginaddr(var->openmb,header.TxtOffset,header.TxtLen,jam_fromaddr);
-
    if(xlat && postxlat->xlattab)
    {
       if((xlatres=xlatstr(jam_fromname,postxlat->xlattab)))
@@ -1629,25 +1607,20 @@ void getparentinfo(struct var *var,uchar *article,uchar *currentgroup,uchar *msg
    strcpy(fromname,jam_fromname);
    strcpy(fromaddr,jam_fromaddr);
    strcpy(msgid,jam_msgid);
-      
-   JAM_DelSubPacket(subpack);
-   return;
 }
 
 void cancelmessage(struct var *var,uchar *article,struct xlat *postxlat)
 {
-   uchar *at,*pc;
+   uchar *at,*pc,*ctrl,*str;
    struct group *group;
-   ulong num,count;
-   int res;
-   s_JamBaseHeader baseheader;
-   s_JamSubPacket* subpack;
-   s_JamMsgHeader header;
-   s_JamSubfield* field;
+   ulong num,smapinum,ctrllen;
    struct xlat *xlat;
    uchar *xlatres;
-   uchar buf[100],fromname[100],chrs[20],codepage[20];
-         
+   uchar fromname[100],chrs[20],codepage[20];
+   int counts;
+   HMSG msg;
+   XMSG xmsg;
+   
    if(article[0] != '<' || article[strlen(article)-1] != '>')
    {
       socksendtext(var,"441 POST failed (Article to cancel not found)" CRLF);
@@ -1689,65 +1662,71 @@ void cancelmessage(struct var *var,uchar *article,struct xlat *postxlat)
 
    num=atol(article);
 
-   if(!jamopenarea(var,group))
+   if(!smapiopenarea(var,group))
+   {
+      socksendtext(var,"441 POST failed (Article to cancel not found)" CRLF);
+      return;
+   }
+
+   if(!(smapinum=MsgUidToMsgn(var->openarea,num,UID_EXACT)))
    {
       socksendtext(var,"441 POST failed (Article to cancel not found)" CRLF);
       return;
    }
   
-   if(JAM_ReadMBHeader(var->openmb,&baseheader))
+   if(!(msg=MsgOpenMsg(var->openarea,MOPEN_READ,smapinum)))
    {
-      os_logwrite("(%s) Could not read messagebase header of \"%s\"",var->clientid,group->jampath);
+      os_logwrite("(%s) Could not open message %lu in \"%s\"",var->clientid,smapinum,var->opengroup->jampath);
+      socksendtext(var,"441 POST failed (Could not open message to cancel)" CRLF);
+      return;
+   }
+         
+   ctrllen=MsgGetCtrlLen(msg);
+   ctrl=malloc(ctrllen+1);
+   
+   if(!ctrl)
+   {
+      MsgCloseMsg(msg);
+      return;
+   }
+   
+   if(MsgReadMsg(msg,&xmsg,0,0,NULL,ctrllen,ctrl) == -1)
+   {
+      os_logwrite("(%s) Could not read message %lu in \"%s\"",var->clientid,smapinum,var->opengroup->jampath);
       socksendtext(var,"441 POST failed (Could not read message to cancel)" CRLF);
+      free(ctrl);
+      MsgCloseMsg(msg);
       return;
    }
 
-   res=JAM_ReadMsgHeader(var->openmb,num-baseheader.BaseMsgNum,&header,&subpack);
-
-   if(res != 0 && res != JAM_NO_MESSAGE)
-   {
-      os_logwrite("(%s) Could not read message %lu in \"%s\"",var->clientid,num,var->opengroup->jampath);
-      socksendtext(var,"441 POST failed (Could not read message to cancel)" CRLF);
-      JAM_DelSubPacket(subpack);
-      return;
-   }
-
-   if(res == JAM_NO_MESSAGE)
-   {
-      socksendtext(var,"441 POST failed (Article to cancel not found)" CRLF);
-      JAM_DelSubPacket(subpack);
-      return;
-   }
-
-   fromname[0]=0;
+   ctrl[ctrllen]=0;
+      
    chrs[0]=0;
-   codepage[0]=0;
+   codepage[0]=0;   
+
+   mystrncpy(fromname,xmsg.from,100); 
    
-   count=0;
-   
-   while((field=JAM_GetSubfield_R(subpack,&count)))
+   if((str=MsgGetCtrlToken(ctrl,"CHRS")))
    {
-      if(field->LoID == JAMSFLD_SENDERNAME)
-         mystrncpy(fromname,field->Buffer,min(field->DatLen+1,100));
-   
-      if(field->LoID == JAMSFLD_FTSKLUDGE)
-      {
-         mystrncpy(buf,field->Buffer,min(field->DatLen+1,100));
-
-         if(strnicmp(buf,"CHRS: ",6)==0)
-         {
-            mystrncpy(chrs,&buf[6],20);
-            if(strchr(chrs,' ')) *strchr(chrs,' ')=0;
-            strip(chrs);
-         }
-
-         if(strnicmp(buf,"CHARSET: ",9)==0)
-            mystrncpy(chrs,&buf[9],20);
-
-         if(strnicmp(buf,"CODEPAGE: ",10)==0)
-            mystrncpy(codepage,&buf[10],20);
-      }
+      mystrncpy(chrs,getkludgedata(str),20);
+      free(str);
+      stripchrs(chrs);
    }
+   
+   if((str=MsgGetCtrlToken(ctrl,"CHARSET")))
+   {
+      mystrncpy(chrs,getkludgedata(str),20);
+      free(str);
+   }
+   
+   if((str=MsgGetCtrlToken(ctrl,"CODEPAGE")))
+   {
+      mystrncpy(codepage,getkludgedata(str),20);
+      free(str);
+   }
+   
+   MsgCloseMsg(msg);
+   free(ctrl);
    
    xlat=findreadxlat(var,group,chrs,codepage,postxlat->fromchrs);
 
@@ -1763,59 +1742,61 @@ void cancelmessage(struct var *var,uchar *article,struct xlat *postxlat)
    if(!matchname(var->realnames,fromname))
    {
       socksendtext(var,"441 POST failed (Cannot cancel, message not from you)" CRLF);
-      JAM_DelSubPacket(subpack);
       return;
    }
 
-   if(!(header.Attribute & MSG_LOCAL))
+   if(!(xmsg.attr & MSGLOCAL))
    {
       socksendtext(var,"441 POST failed (Cannot cancel, message not local)" CRLF);
-      JAM_DelSubPacket(subpack);
       return;
    }
       
-   if(header.Attribute & MSG_SENT)
+   if(xmsg.attr & MSGSENT)
    {
       socksendtext(var,"441 POST failed (Cannot cancel, message already sent)" CRLF);
-      JAM_DelSubPacket(subpack);
       return;
    }
    
-   if(header.Attribute & MSG_LOCKED)
+   if(xmsg.attr & MSGLOCKED)
    {
       socksendtext(var,"441 POST failed (Cannot cancel, message is locked)" CRLF);
-      JAM_DelSubPacket(subpack);
       return;
    }
    
-   if(JAM_LockMB(var->openmb,10))
+   while(MsgLock(var->openarea) == -1)
    {
-      os_logwrite("(%s) Failed to lock JAM messagebase \"%s\"",var->clientid,group->jampath);
-      socksendtext(var,"441 Local error: Failed to lock messagebase" CRLF);
-      JAM_DelSubPacket(subpack);
+      os_logwrite("(%s) Messagebase \"%s\" is locked, waiting...",var->clientid,var->currentgroup->jampath);
+      counts++;
+      
+      if(counts == 10)
+      {
+         os_logwrite("(%s) Failed to lock \"%s\"",var->clientid,var->currentgroup->jampath);
+         socksendtext(var,"441 Local error: Failed lock message" CRLF);
+         return;
+      }
+      
+      os_sleep(1);
+   }
+                  
+   if(!(msg=MsgOpenMsg(var->openarea,MOPEN_CREATE,0)))
+   {
+      socksendtext(var,"503 Local error: Could not create message" CRLF);
       return;
    }
-   
-   header.Attribute |= MSG_DELETED;
-   
-   res=JAM_ChangeMsgHeader(var->openmb,num-baseheader.BaseMsgNum,&header);
-
-   JAM_UnlockMB(var->openmb);
       
-   if(res != 0)
+   if(MsgKillMsg(var->openarea,smapinum) == -1)
    {
       os_logwrite("(%s) Could not delete message %lu in \"%s\"",var->clientid,num,var->opengroup->jampath);
       socksendtext(var,"441 Local error: Failed to delete message" CRLF);
-      JAM_DelSubPacket(subpack);
-      return;
    }
-         
-   socksendtext(var,"240 Article cancelled" CRLF);
+   else
+   {
+      os_logwrite("(%s) %s deleted message #%lu in %s",var->clientid,var->loginname,num,var->opengroup->tagname);
+      socksendtext(var,"240 Article cancelled" CRLF);
+   }
    
-   JAM_DelSubPacket(subpack);
-   return;
+   MsgUnlock(var->openarea);
 }
-
 
 /* line should have some extra room. line may grow by one or two characters */
 void tidyquote(char *line)
@@ -1968,60 +1949,43 @@ uchar *smartquote(uchar *oldtext,ulong maxlen,uchar *fromname)
 
 void setreply(struct var *var,ulong parentmsg,ulong newmsg)
 {
-   s_JamBaseHeader baseheader;
-   s_JamMsgHeader header;
-   int res;
-   ulong nextreply,msg;
-
-   if(JAM_ReadMBHeader(var->openmb,&baseheader))
+   ulong smapinum;
+   HMSG msg;
+   XMSG xmsg;
+   int i;
+       
+   if(!(smapinum=MsgUidToMsgn(var->openarea,parentmsg,UID_EXACT)))
+      return;
+      
+   if(!(msg=MsgOpenMsg(var->openarea,MOPEN_READ,smapinum)))
+      return;
+   
+   if(MsgReadMsg(msg,&xmsg,0,0,NULL,0,NULL) == -1)
    {
-      os_logwrite("(%s) Could not read messagebase header of \"%s\"",var->clientid,var->opengroup->jampath);
+      MsgCloseMsg(msg);
       return;
    }
 
-   /* Get parent message */
-
-   res=JAM_ReadMsgHeader(var->openmb,parentmsg-baseheader.BaseMsgNum,&header,NULL);
-
-   if(res != 0)
+   for(i=0;i<MAX_REPLY;i++)
+      if(xmsg.replies[i] == 0) break;
+      
+   if(i != MAX_REPLY)
+      xmsg.replies[i] = newmsg;
+   
+   MsgCloseMsg(msg);
+   
+   if(!(msg=MsgOpenMsg(var->openarea,MOPEN_RW,smapinum)))
       return;
 
-   if(header.Reply1st == 0)
-   {
-      /* This is the first reply. Set Reply1st and update header */
-
-      header.Reply1st=newmsg;
-      JAM_ChangeMsgHeader(var->openmb,parentmsg-baseheader.BaseMsgNum,&header);
-      return;
-   }
-
-   /* There were other replies. Find the last. */
-
-   nextreply=header.Reply1st;
-   msg=0;
-
-   while(nextreply)
-   {
-      res=JAM_ReadMsgHeader(var->openmb,nextreply-baseheader.BaseMsgNum,&header,NULL);
-
-      if(res != 0)
-         return;
-
-      msg=nextreply;
-      nextreply=header.ReplyNext;
-   }
-
-   /* Found last reply. Set ReplyNext and update header */
-
-   header.ReplyNext=newmsg;
-   JAM_ChangeMsgHeader(var->openmb,msg-baseheader.BaseMsgNum,&header);
+   MsgWriteMsg(msg,0,&xmsg,NULL,0,0,0,NULL);
+   MsgCloseMsg(msg);
 }
 
-bool validateaddr(uchar *str)
+bool parseaddr(uchar *str,NETADDR *dest)
 {
    unsigned int zone,net,node,point;
    char ch;
-   
+
    /* Remove domain if present */
    
    if(strchr(str,'@'))     
@@ -2035,33 +1999,36 @@ bool validateaddr(uchar *str)
          return(FALSE);
    }
 
-   if(point)
-      sprintf(str,"%u:%u/%u.%u",zone,net,node,point);
-
-   else
-      sprintf(str,"%u:%u/%u",zone,net,node);
-
+   if(dest)
+   {
+      dest->zone=zone;
+      dest->net=net;
+      dest->node=node;
+      dest->point=point;
+   }
+   
    return(TRUE);   
 }
 
 void command_post(struct var *var)
 {
    uchar *text,*newtext,*xlatres,line[1000],buf[100],*ch;
-   ulong allocsize,textlen,textpos,getctpos,c,d,parentmsg,count;
+   ulong allocsize,textlen,textpos,getctpos,c,d,parentmsg,pos,msgnum;
    bool finished,toobig;
    uchar from[100],fromaddr[100],toname[100],subject[100],organization[100],newsgroup[100];
    uchar contenttype[100],contenttransferencoding[100],reference[100],newsreader[100];
-   uchar msgid[100],replyid[100],replyto[100],chrs[20],chrs2[20],codepage[20],timezone[13];
+   uchar replyid[100],replyto[100],chrs[20],chrs2[20],codepage[20];
    uchar control[100],dispname[100],toaddr[100],quotename[100];
+   uchar kludges[1000]; /* space for 10 lines should be enough */
    struct group *g;
    struct xlat *xlat;
-   s_JamSubPacket*	SubPacket_PS;
-   s_JamMsgHeader	Header_S;
    time_t t1,t2;
    struct tm *tp;
-   int res,timeofs,timesign,tr;
+   int timeofs,timesign,tr,counts;
    bool flowed;
    FILE *fp;
+   HMSG hmsg;
+   XMSG xmsg;
    
    allocsize=POST_MAXSIZE+500; /* Some extra room for tearline and origin */
 
@@ -2417,7 +2384,7 @@ void command_post(struct var *var)
    text[d]=0;
 
    /* Check access rights */
-
+   
    for(g=var->firstgroup;g;g=g->next)
       if(stricmp(newsgroup,g->tagname)==0) break;
 
@@ -2480,7 +2447,7 @@ void command_post(struct var *var)
    {
       if(!cfg_nocancel)
       {
-         cancelmessage(var,&control[7],xlat);
+         cancelmessage(var,&control[7],xlat); 
          free(text);
          return;
       }
@@ -2499,8 +2466,6 @@ void command_post(struct var *var)
    
    quotename[0]=0;
       
-   sprintf(msgid,"%s %08lx",g->aka,get_msgid_num());
-   
    if(reference[0])
    {
       if(g->netmail)
@@ -2541,7 +2506,7 @@ void command_post(struct var *var)
       
       if((ch=strchr(line,',')))
       {
-         /* Format: To: name,address */  
+         /* Format: To: name,address */
       
          *ch=0;
          ch++;
@@ -2590,7 +2555,7 @@ void command_post(struct var *var)
          return;
       }
       
-      if(!validateaddr(toaddr))
+      if(!parseaddr(toaddr,NULL))
       {
          sockprintf(var,"441 Posting failed (Invalid address %s)" CRLF,toaddr);
          free(text);
@@ -2608,49 +2573,9 @@ void command_post(struct var *var)
          text=newtext;
       }
    }
-            
-   /* Make JAM header */
 
-   JAM_ClearMsgHeader(&Header_S);
-
-   if(!(SubPacket_PS = JAM_NewSubPacket()))
-   {
-      socksendtext(var,"503 Local error: JAM_NewSubPacket() failed" CRLF);
-      free(text);
-      return;
-   }
-
-   t1=time(NULL);
-   tp=gmtime(&t1);
-   tp->tm_isdst=-1;
-   t2=mktime(tp);
-
-   timeofs=(t1-t2)/60;
-   timesign=timeofs < 0 ? -1 : 1;
-
-   sprintf(timezone,"TZUTC: %s%02d%02d",
-           (t1 < t2 ? "-" : ""),
-           (timesign * timeofs) / 60,
-           (timesign * timeofs) % 60);
-
-   Header_S.DateWritten   = time(NULL)-t2+t1;
-   Header_S.DateReceived  = time(NULL)-t2+t1;
-   Header_S.DateProcessed = time(NULL)-t2+t1;
-
-   /* Set MSGID and REPLY */
-
-   addjamfield(SubPacket_PS,JAMSFLD_MSGID,msgid);
-
-   if(replyid[0])
-      addjamfield(SubPacket_PS,JAMSFLD_REPLYID,replyid);
-   
-   Header_S.MsgIdCRC = JAM_Crc32(msgid,strlen(msgid));
-   Header_S.ReplyCRC = JAM_Crc32(replyid,strlen(replyid));
-
-   Header_S.ReplyTo  = parentmsg;
-      
    /* Add tearline and origin */
-
+   
    if(!g->netmail && !g->local)
    {
       if(newsreader[0]==0 || cfg_notearline)  strcpy(line,CR "---" CR);
@@ -2666,22 +2591,8 @@ void command_post(struct var *var)
          strcat(text,line);
    }
    
-   count=0;
-   
-   if(getcomma(var->realnames,&count,dispname,100))
-      if(!ispattern(dispname)) mystrncpy(from,dispname,36);
-   
-   if(!var->login && cfg_guestsuffix)
-   {
-      tr=36-strlen(cfg_guestsuffix)-1;
-      if(tr < 0) tr=0;
-      
-      from[tr]=0;
-      strcat(from,cfg_guestsuffix);
-   }      
-   
    /* Do xlat */
-
+   
    if(xlat->xlattab)
    {
       if((xlatres=xlatstr(from,xlat->xlattab)))
@@ -2702,92 +2613,147 @@ void command_post(struct var *var)
          text=xlatres;
       }
    }
-     
-   addjamfield(SubPacket_PS,JAMSFLD_SENDERNAME,from);
-   addjamfield(SubPacket_PS,JAMSFLD_RECVRNAME,toname);
-   addjamfield(SubPacket_PS,JAMSFLD_SUBJECT,subject);
+   
+   /* Create header */
+   
+   memset(&xmsg,0,sizeof(xmsg));
+   
+   t1=time(NULL);
+   tp=gmtime(&t1);
+   tp->tm_isdst=-1;
+   t2=mktime(tp);
+
+   timeofs=(t1-t2)/60;
+   timesign=timeofs < 0 ? -1 : 1;
+   
+   tp=localtime(&t1);
+   
+   TmDate_to_DosDate(tp,(union stamp_combo *)&xmsg.date_written);
+   TmDate_to_DosDate(tp,(union stamp_combo *)&xmsg.date_arrived);
+
+   pos=0;
+
+   if(getcomma(var->realnames,&pos,dispname,100))
+      if(!ispattern(dispname)) mystrncpy(from,dispname,36);
+   
+   if(!var->login && cfg_guestsuffix)
+   {
+      tr=36-strlen(cfg_guestsuffix)-1;
+      if(tr < 0) tr=0;
+      
+      from[tr]=0;
+      strcat(from,cfg_guestsuffix);
+   }      
+
+   xmsg.attr = MSGLOCAL;
+   
+   if(g->netmail)
+      xmsg.attr |= MSGPRIVATE;
+
+   parseaddr(g->aka,&xmsg.orig);
+         
+   if(g->netmail)
+      parseaddr(toaddr,&xmsg.dest);
+         
+   mystrncpy(xmsg.from,from,sizeof(xmsg.from));
+   mystrncpy(xmsg.to,toname,sizeof(xmsg.to));
+   mystrncpy(xmsg.subj,subject,sizeof(xmsg.subj));
+
+   xmsg.replyto=parentmsg;
+      
+   /* Create kludges */
+   
+   kludges[0]=0;
    
    if(!g->local)
-      addjamfield(SubPacket_PS,JAMSFLD_OADDRESS,g->aka);
-
-   if(g->netmail)
-      addjamfield(SubPacket_PS,JAMSFLD_DADDRESS,toaddr);
+      sprintf(&kludges[strlen(kludges)],"\01MSGID: %s %08lx",g->aka,get_msgid_num());
+   
+   if(replyid[0])
+      sprintf(&kludges[strlen(kludges)],"\01REPLY: %s",replyid);
    
    if(!cfg_noreplyaddr)
    {
-      if(replyto[0]) sprintf(line,"REPLYADDR %s",replyto);
-      else           sprintf(line,"REPLYADDR %s",fromaddr);
-
-      addjamfield(SubPacket_PS,JAMSFLD_FTSKLUDGE,line);
+      if(replyto[0]) sprintf(&kludges[strlen(kludges)],"\01REPLYADDR %s",replyto);
+      else           sprintf(&kludges[strlen(kludges)],"\01REPLYADDR %s",fromaddr);
    }
 
-   strcpy(line,SERVER_NAME " " SERVER_PIDVERSION);
-   addjamfield(SubPacket_PS,JAMSFLD_PID,line);
+   sprintf(&kludges[strlen(kludges)],"\01PID: " SERVER_NAME " " SERVER_PIDVERSION);
 
    if(xlat->tochrs[0] && !g->nochrs)
    {
       setchrscodepage(chrs,codepage,xlat->tochrs);
       
       if(chrs[0])
-      {
-         sprintf(line,"CHRS: %s 2",chrs);
-         addjamfield(SubPacket_PS,JAMSFLD_FTSKLUDGE,line);
-      }
+         sprintf(&kludges[strlen(kludges)],"\01CHRS: %s 2",chrs);
       
       if(codepage[0])
-      {
-         sprintf(line,"CODEPAGE: %s",codepage);
-         addjamfield(SubPacket_PS,JAMSFLD_FTSKLUDGE,line);
-      }
+         sprintf(&kludges[strlen(kludges)],"\01CODEPAGE: %s",codepage);
    }
 
    if(!cfg_notzutc)
-      addjamfield(SubPacket_PS,JAMSFLD_FTSKLUDGE,timezone);
-
-   if(g->netmail)    Header_S.Attribute = MSG_LOCAL | MSG_PRIVATE | MSG_TYPENET;
-   else if(g->local) Header_S.Attribute = MSG_LOCAL | MSG_TYPELOCAL;
-   else              Header_S.Attribute = MSG_LOCAL | MSG_TYPEECHO;
+   {
+      sprintf(&kludges[strlen(kludges)],"\01TZUTC: %s%02d%02d",
+         (t1 < t2 ? "-" : ""),
+         (timesign * timeofs) / 60,
+         (timesign * timeofs) % 60);
+   }
 
    /* Write message */
-
-   if(!jamopenarea(var,g))
+         
+   if(!smapiopenarea(var,g))
    {
       socksendtext(var,"503 Local error: Could not open messagebase" CRLF);
       free(text);
-      JAM_DelSubPacket(SubPacket_PS);
       return;
    }
 
-   if(JAM_LockMB(var->openmb,10))
+   counts=0;
+   
+   while(MsgLock(var->openarea) == -1)
    {
-      os_logwrite("(%s) Failed to lock JAM messagebase \"%s\"",var->clientid,g->jampath);
-      socksendtext(var,"503 Local error: Failed to lock messagebase" CRLF);
+      os_logwrite("(%s) Messagebase \"%s\" is locked, waiting...",var->clientid,g->jampath);
+      counts++;
+      
+      if(counts == 10)
+      {
+         os_logwrite("(%s) Failed to lock \"%s\"",var->clientid,g->jampath);
+         socksendtext(var,"503 Local error: Failed to lock messagebase" CRLF);
+         free(text);
+         return;
+      }
+      
+      os_sleep(1);
+   }
+                  
+   if(!(hmsg=MsgOpenMsg(var->openarea,MOPEN_CREATE,0)))
+   {
+      socksendtext(var,"503 Local error: Could not create message" CRLF);
       free(text);
-      JAM_DelSubPacket(SubPacket_PS);
+      return;
+   }
+
+   if(MsgWriteMsg(hmsg,0,&xmsg,text,strlen(text),strlen(text),strlen(kludges),kludges) != 0)
+   {
+      os_logwrite("(%s) Failed to write message to messagebase \"%s\"",var->clientid,g->jampath);
+      socksendtext(var,"503 Local error: Could not write message" CRLF);
+      MsgCloseMsg(hmsg);
+      free(text);
       return;
    }
    
-   res=JAM_AddMessage(var->openmb,&Header_S,SubPacket_PS,text,strlen(text));
-   
-   if(res)
-   {
-      socksendtext(var,"503 Local error: Failed to write to messagebase" CRLF);
-      os_logwrite("(%s) Failed to write message to JAM messagebase \"%s\"",var->clientid,g->jampath);
-   }
-   else
-   {
-      socksendtext(var,"240 Article posted" CRLF);
-      os_logwrite("(%s) Posted message to %s (#%lu)",var->clientid,newsgroup,Header_S.MsgNum);
-   }
-
-   JAM_DelSubPacket(SubPacket_PS);
+   msgnum=MsgMsgnToUid(var->openarea,MsgGetNumMsg(var->openarea));
 
    if(parentmsg)
-      setreply(var,parentmsg,Header_S.MsgNum);
+      setreply(var,parentmsg,msgnum);
+      
+   MsgCloseMsg(hmsg);
+   MsgUnlock(var->openarea);
+      
+   socksendtext(var,"240 Article posted" CRLF);
 
-   JAM_UnlockMB(var->openmb);
-
-   if(cfg_echomailjam)
+   os_logwrite("(%s) Posted message to %s (#%ld)",var->clientid,newsgroup,msgnum);
+   
+   if(cfg_echomailjam && g->jampath[0]!='#' && g->jampath[0]!='$')
    {
       if(!(fp=fopen(cfg_echomailjam,"a")))
       {
@@ -2795,14 +2761,14 @@ void command_post(struct var *var)
       }
       else
       {
-         fprintf(fp,"%s %ld\n",g->jampath,Header_S.MsgNum);
+         fprintf(fp,"%s %ld\n",g->jampath,xmsg.umsgid);
          fclose(fp);
       }
    }
    
    free(text);
 }
-
+      
 void command_authinfo(struct var *var)
 {
    uchar *tmp,*opt,*next,*equal;
@@ -2949,7 +2915,7 @@ void server(SOCKET s)
    var.currentgroup=NULL;
    var.currentarticle=0;
 
-   var.openmb=NULL;
+   var.openarea=NULL;
    var.opengroup=NULL;
 
    var.firstgroup=NULL;
@@ -3052,7 +3018,6 @@ void server(SOCKET s)
 
       return;
    }
-
 
    if(!(readxlat(&var)))
    {
@@ -3187,22 +3152,27 @@ void server(SOCKET s)
 
    os_logwrite("(%s) Connection closed",var.clientid);
 
-   if(var.openmb)
-   {
-      JAM_CloseMB(var.openmb);
-      free(var.openmb);
-   }
+   if(var.openarea)
+      MsgCloseArea(var.openarea);
 
    freegroups(&var);
    freexlat(&var);
 
    freesockio(var.sio);
 
-	os_getexclusive();
-	server_openconnections--;
-	os_stopexclusive();
+   os_getexclusive();
+   server_openconnections--;
+   os_stopexclusive();
 
    shutdown(s,2);
    close(s);
 }
 
+/* limitations in SMAPI 2.4-RC2: */
+
+ /* SLOW! It can take several seconds to open a JAM area with 80 000 messages. */
+ /* setting links when replying to a message seems to only work partially in JAM areas */
+ /* SMAPI adds garbage characters after FMPT and TOPT lines in netmails, a string termination issue? */
+ 
+/* shared library på de plattformar där hpt använderv det */
+/* läsa copying */

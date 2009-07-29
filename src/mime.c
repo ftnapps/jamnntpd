@@ -522,4 +522,3 @@ void mimesendheaderline(struct var *var,uchar *keyword,uchar *data,uchar *chrs,u
    }
 }
 
-

@@ -11,9 +11,16 @@
 typedef int SOCKET;
 #endif
 
-typedef int bool;
+#ifndef PLATFORM_LINUX
+typedef unsigned long ulong;
+typedef unsigned short ushort;
+#endif
 
-#include "jamlib/jam.h"
+typedef int bool;
+typedef unsigned char uchar;
+
+#include <smapi/msgapi.h>
+#include <smapi/progprot.h>
 
 struct var
 {
@@ -24,7 +31,7 @@ struct var
    ulong currentarticle;
 
    struct group *opengroup;
-   s_JamBase *openmb;
+   HAREA openarea;
 
    ulong inputpos;
    uchar *input;
@@ -47,7 +54,7 @@ struct var
 
    uchar loginname[100];
    uchar password[100];
-   uchar realnames[36];
+   uchar realnames[100];
    
    bool opt_flowed;
    bool opt_showto;
@@ -69,7 +76,7 @@ struct var
 
 #define CRLF CR LF
 
-#define SERVER_NAME       "JamNNTPd/" PLATFORM_NAME
+#define SERVER_NAME       "JamNNTPd-SMAPI/" PLATFORM_NAME
 #define SERVER_VERSION    "1.0"
 #define SERVER_PIDVERSION "1"
 

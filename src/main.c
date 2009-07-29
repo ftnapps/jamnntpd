@@ -367,6 +367,7 @@ int main(int argc, char **argv)
    fd_set fds;
    struct timeval tv;
    FILE *fp;
+   struct _minf m;
    
    if(argc == 2 && (stricmp(argv[1],"?")==0 || stricmp(argv[1],"-h")==0 || stricmp(argv[1],"--help")==0))
    {
@@ -448,6 +449,17 @@ int main(int argc, char **argv)
        exit(10);
    }
 	
+   m.req_version = 0;
+   m.def_zone = 0;
+
+   if(MsgOpenApi(&m) != 0)
+   {
+      os_showerror("Failed to initialize SMAPI");
+      freeargs();
+      os_free();
+      exit(10);
+   }
+
    sock = socket(PF_INET,SOCK_STREAM,IPPROTO_TCP);
 
    if(sock == INVALID_SOCKET)
@@ -455,6 +467,7 @@ int main(int argc, char **argv)
       uchar err[200];
 
       os_showerror("Failed to create socket: %s",os_strerr(os_errno(),err,200));
+      MsgCloseApi();
       os_free();
       freeargs();
       exit(10);
@@ -474,6 +487,7 @@ int main(int argc, char **argv)
 
       os_showerror("Could not bind to port (server already running?): %s",os_strerr(os_errno(),err,200));
       close(sock);
+      MsgCloseApi();
       os_free();
       freeargs();
       exit(10);
@@ -487,6 +501,7 @@ int main(int argc, char **argv)
 
       os_showerror("Could not listen to socket: %s",os_strerr(os_errno(),err,200));
       close(sock);
+      MsgCloseApi();
       os_free();
       freeargs();
       exit(10);
@@ -538,6 +553,7 @@ int main(int argc, char **argv)
    close(sock);
 
    os_logwrite(SERVER_NAME " exited");
+   MsgCloseApi();
    os_free();
    freeargs();
    exit(0);

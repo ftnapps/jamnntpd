@@ -18,7 +18,7 @@ makechs$(EXESUFFIX): makechs.c
 	$(STRIP) makechs$(EXESUFFIX)
 
 jamnntpd$(EXESUFFIX): $(OBJS)
-	$(CC) -o jamnntpd$(EXESUFFIX) $(OBJS) jamlib/jamlib.a -lpthread
+	$(CC) -o jamnntpd$(EXESUFFIX) $(OBJS) -lsmapi -lpthread
 	$(STRIP) jamnntpd$(EXESUFFIX)
 
 nntpserv.o : nntpserv.c

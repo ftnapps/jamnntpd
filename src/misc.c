@@ -13,53 +13,11 @@ void strip(uchar *str)
 {
    int c;
 
+   if(str[0] == 0)
+      return;
+
    for(c=strlen(str)-1;str[c] < 33 && c>=0;c--) 
 		str[c]=0;
-}
-
-void makedate(time_t t,uchar *dest,uchar *tz)
-{
-   time_t t1,t2;
-   struct tm *tp;
-   ulong jam_utcoffset;
-   uchar rfctz[6];
-
-   uchar *monthnames[]={"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
-   uchar *daynames[]={"Sun","Mon","Tue","Wed","Thu","Fri","Sat"};
-
-   /* Some timezone tricks */
-
-   t1=time(NULL);
-   tp=gmtime(&t1);
-   tp->tm_isdst=-1;
-   t2=mktime(tp);
-   jam_utcoffset=t2-t1;
-   t1=t+jam_utcoffset;
-
-   if(tz[0])
-   {
-      if(tz[0] == '-')
-         mystrncpy(rfctz,tz,6);
-      else
-         sprintf(rfctz,"+%.4s",tz);
-   }
-   else
-   {
-      strcpy(rfctz, "GMT");
-      t1=t1+jam_utcoffset;
-   }
-
-   tp=localtime(&t1);
-
-   sprintf(dest,"%s, %d %s %d %02d:%02d:%02d %s",
-      daynames[tp->tm_wday],
-      tp->tm_mday,
-      monthnames[tp->tm_mon],
-      1900+tp->tm_year,
-      tp->tm_hour,
-      tp->tm_min,
-      tp->tm_sec,
-      rfctz);
 }
 
 bool setboolonoff(uchar *opt,bool *var)
@@ -243,5 +201,129 @@ void freelist(void *first)
       next=*(void **)ptr;
       free(ptr);
       ptr=next;
+   }
+}
+
+uchar *getkludgedata(uchar *line)
+{
+   int c;
+   
+   for(c=0;line[c];c++)
+      if(line[c] == ':' || line[c] == ' ') break;
+      
+   if(line[c])
+      c++;
+      
+   while(line[c] == ' ')
+      c++;
+      
+   return(&line[c]);
+}      
+
+      
+void makedate(struct _stamp *stamp,uchar *dest,uchar *tz)
+{
+   uchar *monthnames[]={"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
+   uchar *daynames[]={"Sun","Mon","Tue","Wed","Thu","Fri","Sat"};
+   uchar rfctz[6];
+   struct tm tm,*tp;
+   time_t t;
+   
+   DosDate_to_TmDate((union stamp_combo *)stamp,&tm);
+
+   if(tz[0])
+   {
+      if(tz[0] == '-') mystrncpy(rfctz,tz,6);
+      else             sprintf(rfctz,"+%.4s",tz);
+
+      t=mktime(&tm);
+      tp=gmtime(&t);
+      memcpy(&tm,tp,sizeof(struct tm));
+   }
+   else
+   {
+      strcpy(rfctz, "GMT");
+
+      /* Rebuild tm - DosDate_to_TmDate does not calculate wday */
+      t=mktime(&tm);
+      tp=localtime(&t);
+      memcpy(&tm,tp,sizeof(struct tm));
+   }
+
+   sprintf(dest,"%s, %d %s %d %02d:%02d:%02d %s",
+      daynames[tm.tm_wday],
+      tm.tm_mday,
+      monthnames[tm.tm_mon],
+      1900+tm.tm_year,
+      tm.tm_hour,
+      tm.tm_min,
+      tm.tm_sec,
+      rfctz);
+}
+
+void stripreplyaddr(uchar *str)
+{
+   /* to take care of "full name" <name@domain> formar */
+   
+   uchar *ch;
+   
+   if((ch=strchr(str,'<')))
+   {
+      strcpy(str,ch+1);
+
+      if((ch=strchr(str,'>')))
+         *ch=0;
+    }
+}
+
+void stripchrs(uchar *str)
+{
+   /* remove charset level */
+   
+   if(strchr(str,' '))
+      *strchr(str,' ')=0;
+      
+   strip(str);
+}
+
+void extractorigin(uchar *text,uchar *addr)
+{
+   ulong textpos,d;
+   uchar originbuf[100];
+     
+   textpos=0;
+             
+   while(text[textpos])
+   {
+      d=textpos;
+
+      while(text[d] != 13 && text[d] != 0)
+         d++;
+
+      if(text[d] == 13)
+         d++;
+
+      if(d-textpos > 11 && strncmp(&text[textpos]," * Origin: ",11)==0)
+         mystrncpy(originbuf,&text[textpos],min(d-textpos,100));
+
+      textpos=d;
+   }
+
+   if(originbuf[0])
+   {
+      /* Find address part */
+   
+      d=strlen(originbuf);
+
+      while(d>0 && originbuf[d]!='(') 
+         d--;
+
+      if(originbuf[d] == '(')
+      {
+         strcpy(addr,&originbuf[d+1]);
+   
+         if(strchr(addr,')'))
+            *strchr(addr,')')=0;
+      }
    }
 }
