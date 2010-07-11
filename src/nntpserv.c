@@ -984,6 +984,13 @@ void command_abhs(struct var *var,uchar *cmd)
       if(var->opt_showto) sprintf(buf,"%s -> %s",fromname,toname);
       else                strcpy(buf,fromname);
 
+      {
+         unsigned zone,net,node,point;
+         if(sscanf(fromaddr,"%u:%u/%u.%u", &zone, &net, &node, &point)==4)
+            sprintf(fromaddr,"%u@%u.%u.%u", point, node, net, zone);
+         else if(sscanf(fromaddr,"%u:%u/%u", &zone, &net, &node)==3)
+            sprintf(fromaddr,"0@%u.%u.%u", node, net, zone);
+      }
       mimesendheaderline(var,"From",buf,chrs,fromaddr,cfg_noencode);
 
       mimesendheaderline(var,"X-Comment-To",toname,chrs,NULL,cfg_noencode);
@@ -1351,6 +1358,14 @@ void command_xover(struct var *var)
                   sprintf(buf,"%s -> %s",fromname,toname);
                   mystrncpy(fromname,buf,100);
                }
+
+               {
+                  unsigned zone,net,node,point;
+                  if(sscanf(fromaddr,"%u:%u/%u.%u", &zone, &net, &node, &point)==4)
+                     sprintf(fromaddr,"%u@%u.%u.%u", point, node, net, zone);
+                  else if(sscanf(fromaddr,"%u:%u/%u", &zone, &net, &node)==3)
+                     sprintf(fromaddr,"0@%u.%u.%u", node, net, zone);
+              }
    
                if(replyaddr[0]) mimemakeheaderline(mimefrom,1000,"From",fromname,chrs,replyaddr,cfg_noencode);
                else             mimemakeheaderline(mimefrom,1000,"From",fromname,chrs,fromaddr,cfg_noencode);
