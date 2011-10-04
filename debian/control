@@ -2,7 +2,7 @@ Source: jamnntpd
 Section: unknown
 Priority: extra
 Maintainer: Robert James Clay <jame@rocasa.us>
-Build-Depends: debhelper (>= 7)
+Build-Depends: debhelper (>= 7.0.50)
 Standards-Version: 3.9.1
 Homepage: https://bitbucket.org/johanbilling/jamnntpd/src/
 
