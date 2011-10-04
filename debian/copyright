@@ -1,4 +1,4 @@
-This package was debianized by Robert James Clay <jame@rocasa.org> on
+This package was debianized by Robert James Clay <jame@rocasa.us> on
 Thu, 09 Oct 2008 19:51:51 -0400.
 
 It was downloaded from <url://example.com>
@@ -25,7 +25,7 @@ License:
     Public License (see /usr/share/common-licences/LGPL-2.1).
 
 
-The Debian packaging is (C) 2008-2011, Robert James Clay <jame@rocasa.org> and
+The Debian packaging is (C) 2008-2011, Robert James Clay <jame@rocasa.us> and
 is licensed under the GPL, see `/usr/share/common-licenses/GPL'.
 
 # Please also look if there are files or directories which have a

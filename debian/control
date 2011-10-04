@@ -1,7 +1,7 @@
 Source: jamnntpd
 Section: unknown
 Priority: extra
-Maintainer: Robert James Clay <jame@rocasa.org>
+Maintainer: Robert James Clay <jame@rocasa.us>
 Build-Depends: debhelper (>= 7)
 Standards-Version: 3.7.3
 Homepage: <insert the upstream URL, if relevant>
