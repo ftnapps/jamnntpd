@@ -4,7 +4,7 @@ Priority: extra
 Maintainer: Robert James Clay <jame@rocasa.us>
 Build-Depends: debhelper (>= 7)
 Standards-Version: 3.7.3
-Homepage: <insert the upstream URL, if relevant>
+Homepage: https://bitbucket.org/johanbilling/jamnntpd/src/
 
 Package: jamnntpd
 Architecture: any
