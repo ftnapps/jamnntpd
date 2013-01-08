@@ -1,13 +1,16 @@
 Source: jamnntpd
 Section: unknown
 Priority: extra
-Maintainer: Robert James Clay <jame@rocasa.org>
-Build-Depends: debhelper (>= 7)
-Standards-Version: 3.7.3
-Homepage: <insert the upstream URL, if relevant>
+Maintainer: Robert James Clay <jame@rocasa.us>
+Build-Depends: debhelper (>= 7.0.50)
+Standards-Version: 3.9.1
+Homepage: https://bitbucket.org/johanbilling/jamnntpd/src/
 
 Package: jamnntpd
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: <insert up to 60 chars description>
- <insert long description, indented with spaces>
+Description: NNTP Server allowing newsreaders to access a JAM messagebase
+ JamNNTPd is an attempt to merge Fidonet technology with modern Usenet
+ newsreaders. Basically, JamNNTPd is NNTP server that allows newsreaders
+ to access a JAM messagebase. (If you didn't understand a word of this, you
+ may not want to use JamNNTPd anyway).
