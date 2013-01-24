@@ -1,5 +1,5 @@
 Source: jamnntpd
-Section: unknown
+Section: news
 Priority: extra
 Maintainer: Robert James Clay <jame@rocasa.us>
 Build-Depends: debhelper (>= 9.0.0)
