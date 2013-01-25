@@ -1,6 +1,7 @@
-jamnntpd for Debian
+JamNNTPd for Debian
 -------------------
 
-<possible notes regarding this package - if none, delete this file>
+   Note the following differences from the source:
+- docs/history.txt is installed as doc/makenl/Changelog
 
- -- Robert James Clay <jame@rocasa.us>  Thu, 09 Oct 2008 19:51:51 -0400
+ -- Robert James Clay <jame@rocasa.us>  Fri, 25 Jan 2013 17:37:19 -0500
