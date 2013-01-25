@@ -1,0 +1,17 @@
+Description: Set default paths for operation of program operation.
+ - Change default log path from /var/spool/log to /var/log.
+Author: Robert James Clay <jame@rocasa.us>
+Origin: vendor
+Last-Update: 2013-01-25
+
+--- a/src/os_linux.h
++++ b/src/os_linux.h
+@@ -14,7 +14,7 @@
+ #define PLATFORM_NAME "Linux"
+ 
+ #define CFG_BASEPATH "/etc/"
+-#define LOG_BASEPATH "/var/spool/log/"
++#define LOG_BASEPATH "/var/log/"
+ 
+ #define TRUE 1
+ #define FALSE 0
