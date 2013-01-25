@@ -5,6 +5,8 @@ Maintainer: Robert James Clay <jame@rocasa.us>
 Build-Depends: debhelper (>= 9.0.0)
 Standards-Version: 3.9.4
 Homepage: https://bitbucket.org/johanbilling/jamnntpd/src/
+Vcs-Git: git://git.code.sf.net/p/ftnapps/jamnntpd/code
+Vcs-Browser: http://http://sourceforge.net/p/ftnapps/jamnntpd/code
 
 Package: jamnntpd
 Architecture: any
