@@ -1,32 +1,53 @@
-This package was debianized by Robert James Clay <jame@rocasa.us> on
-Thu, 09 Oct 2008 19:51:51 -0400.
+Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: jamnntpd
 
-It was downloaded from <url://example.com>
+Files: *
+Copyright: Copyright 2003-2005 Johan Billing <billing@df.lth.se>
+License: permissive
+ The copyright of JamNNTPd belongs to Johan Billing. Permission to use, copy
+ and distribute JamNNTPd is granted provided that this copyright notice is
+ included. Permission to modify JamNNTPd is granted. Distributing modified
+ versions of JamNNTPd is allowed provided that the documentation clearly
+ states that it is a modified version. Parts of JamNNTPd may be freely used
+ in other projects as long as credit is given.
 
-Upstream Author(s):
+Files: src/jamlib/*
+Comment: JamNNTPd uses JAMLIB for reading and modifying JAM messagebases.
+Copyright: 1996 Björn Stenberg
+License: LGPL-2.1
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Lesser General Public
+ License as published by the Free Software Foundation; either
+ version 2.1 of the License, or (at your option) any later version.
+ .
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ Lesser General Public License for more details.
+ .
+ You should have received a copy of the GNU Lesser General Public
+ License along with this library; if not, write to the Free Software
+ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ .
+ On Debian systems, the complete text of the GNU Lesser General Public
+ License version 2.1 can be found in "/usr/share/common-licenses/LGPL-2.1".
 
-    Johan Billing, billing@df.lth.se
+Files: debian/*
+Copyright: 2013 Robert James Clay <jame@rocasa.us>
+License: GPL-2+
+ This package is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation; either version 2 of the License, or
+ (at your option) any later version.
+ .
+ This package is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License
+ along with this program. If not, see <http://www.gnu.org/licenses/>
+ .
+ On Debian systems, the complete text of the GNU General
+ Public License version 2 can be found in "/usr/share/common-licenses/GPL-2".
 
-Copyright:
-
-    Copyright (C) 2003-2005 Johan Billing
-
-License:
-
-    The copyright of JamNNTPd belongs to Johan Billing. Permission to use, copy
-    and distribute JamNNTPd is granted provided that this copyright notice is
-    included. Permission to modify JamNNTPd is granted. Distributing modified
-    versions of JamNNTPd is allowed provided that the documentation clearly
-    states that it is a modified version. Parts of JamNNTPd may be freely used
-    in other projects as long as credit is given.
-
-    JamNNTPd uses JAMLIB for reading and modifying JAM messagebases. JAMLIB is
-    copyright 1996 Björn Stenberg and is released under the GNU Lesser General
-    Public License (see /usr/share/common-licences/LGPL-2.1).
-
-
-The Debian packaging is (C) 2008-2011, Robert James Clay <jame@rocasa.us> and
-is licensed under the GPL, see `/usr/share/common-licenses/GPL'.
-
-# Please also look if there are files or directories which have a
-# different copyright/license attached and list them here.
