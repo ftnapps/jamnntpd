@@ -2,6 +2,7 @@ JamNNTPd for Debian
 -------------------
 
    Note the following differences from the source:
-- docs/history.txt is installed as doc/makenl/Changelog
+- docs/history.txt is installed as /usr/share/doc/jamnntpd/Changelog
 
- -- Robert James Clay <jame@rocasa.us>  Fri, 25 Jan 2013 17:37:19 -0500
+
+ -- Robert James Clay <jame@rocasa.us>  Fri, 25 Jan 2013 20:23:37 -0500
