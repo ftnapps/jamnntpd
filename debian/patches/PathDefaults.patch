@@ -1,5 +1,5 @@
 Description: Set default paths for operation of program operation.
- - Change default log path from /var/spool/log to /var/log.
+ Change default log path from /var/spool/log to /var/log.
 Author: Robert James Clay <jame@rocasa.us>
 Origin: vendor
 Last-Update: 2013-01-25
