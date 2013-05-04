@@ -13,7 +13,7 @@ License: permissive
 
 Files: src/jamlib/*
 Comment: JamNNTPd uses JAMLIB for reading and modifying JAM messagebases.
-Copyright: 1996 Björn Stenberg
+Copyright: 1996 BjÃ¶rn Stenberg
 License: LGPL-2.1
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
