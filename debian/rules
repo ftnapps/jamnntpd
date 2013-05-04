@@ -14,7 +14,7 @@ override_dh_auto_install:
 	dh_auto_install --destdir=debian/jamnntpd
 
 override_dh_installchangelogs:
-	dh_installchangelogs History.txt
+	dh_installchangelogs --keep History.txt
 
 override_dh_installdocs:
 	dh_installdocs --link-doc=jamnntpd
