@@ -2,7 +2,7 @@
 .\" First parameter, NAME, should be all caps
 .\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
 .\" other parameters are allowed: see man(7), man(1)
-.TH MAKECHS SECTION "January 22, 2013"
+.TH MAKECHS SECTION "May 8, 2013"
 .\" Please adjust this date whenever revising the manpage.
 .\"
 .\" Some roff macros, for reference:
@@ -16,42 +16,38 @@
 .\" .sp <n>    insert n+1 empty lines
 .\" for manpage-specific macros, see man(7)
 .SH NAME
-makechs \- program to do something
+makechs \- A program that can be used to create additional translation tables for use by JamNNTPd.
 .SH SYNOPSIS
-.B makechs
-.RI [ options ] " files" ...
-.br
-.B bar
-.RI [ options ] " files" ...
+.B makechs \<fromchrs\> \<destchrs\> \<frommap\> [\<destmap\>]
 .SH DESCRIPTION
-This manual page documents briefly the
-.B makechs
-and
-.B bar
-commands.
-.PP
-.\" TeX users may be more comfortable with the \fB<whatever>\fP and
-.\" \fI<whatever>\fP escape sequences to invode bold face and italics,
-.\" respectively.
-\fBmakechs\fP is a program that...
+The *.chs files in the "xlat" and "unicode/xlat" directories are character set translation tables in the GoldED+ format. The files were created from mappings files found at this URL:
+.TP 
+http://www.unicode.org/Public/MAPPINGS/
+.TP
+Fallback sequences for characters that do not exist in the target charset were taken from Markus Kuhn's transliteration tables found at the URL below:
+.TP
+http://www.cl.cam.ac.uk/~mgk25/download/transtab.tar.gz
+.TP 
+If you want to create additional translation tables, you can easily do so using this utility.
 .SH OPTIONS
-These programs follow the usual GNU command line syntax, with long
-options starting with two dashes (`-').
-A summary of options is included below.
-For a complete description, see the Info files.
+A summary of options is included below:
 .TP
-.B \-h, \-\-help
-Show summary of options.
+.B \<fromchrs\>
+The fidonet name of the charset you want to convert from.
 .TP
-.B \-v, \-\-version
-Show version of program.
+.B \<destchrs\>
+The fidonet name of the charset you want to convert to.
+.TP
+.B \<frommap\>
+The Unicode mappings file for the source charset. 
+.TP
+.B \<destmap\>
+The Unicode mappings file for the destination charset. If you don't supply a mappings file, makechs will instead create a chs file that converts the source charset to utf-8.
+.TP
+The output of makechs is written to the console and needs to be redirected to the desired file.
 .SH SEE ALSO
-.BR bar (1),
-.BR baz (1).
+.BR jamnntpd(1).
 .br
-The programs are documented fully by
-.IR "The Rise and Fall of a Fooish Bar" ,
-available via the Info system.
 .SH AUTHOR
 makechs was written by <upstream author>.
 .PP
