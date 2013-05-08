@@ -2,7 +2,7 @@
 .\" First parameter, NAME, should be all caps
 .\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
 .\" other parameters are allowed: see man(7), man(1)
-.TH JAMNNTPD SECTION "January 22, 2013"
+.TH JAMNNTPD SECTION "May 8, 2013"
 .\" Please adjust this date whenever revising the manpage.
 .\"
 .\" Some roff macros, for reference:
@@ -16,42 +16,115 @@
 .\" .sp <n>    insert n+1 empty lines
 .\" for manpage-specific macros, see man(7)
 .SH NAME
-jamnntpd \- program to do something
+jamnntpd \- An NNTP server that allows newsreaders to access a JAM messagebase. 
 .SH SYNOPSIS
 .B jamnntpd
-.RI [ options ] " files" ...
-.br
-.B bar
-.RI [ options ] " files" ...
+.RI [ options ]
 .SH DESCRIPTION
-This manual page documents briefly the
-.B jamnntpd
-and
-.B bar
-commands.
-.PP
-.\" TeX users may be more comfortable with the \fB<whatever>\fP and
-.\" \fI<whatever>\fP escape sequences to invode bold face and italics,
-.\" respectively.
-\fBjamnntpd\fP is a program that...
+.B JamNNTPd
+is an attempt to merge FTN/Fidonet technology with standard Usenet newsreaders. Basically, it is an NNTP server that allows newsreaders to access a JAM messagebase. 
+
+The behaviour of JamNNTPd can be configured using the configuration options specified below. These can be given to JamNNTPd in two ways:
+
+1) As commandline arguments
+
+2) In a configuration file (see \-config command). The preceding dash (\-) is optional when an option is given in a file, it will be added if missing. A configuration file with the default settings can be created with the \-create option.
+
+If JamNNTPd is run without any commandline arguments at all, it will attempt to read options from a file called "jamnntpd.config" if present. Under Linux, JamNNTPd  will look for this file in the "/etc" directory and under Windows 
+in the current directory. 
+
+It is not necessary to specify any configuration options at all unless when fine-tuning JamNNTPd, the default have been designed to be sensible.
+
 .SH OPTIONS
-These programs follow the usual GNU command line syntax, with long
-options starting with two dashes (`-').
-A summary of options is included below.
-For a complete description, see the Info files.
+General options:
 .TP
-.B \-h, \-\-help
-Show summary of options.
+.B \-port \<port\> or \-p \<port\>
+Set the port where JamNNTPd listens for connections. The default is 5000.
 .TP
-.B \-v, \-\-version
-Show version of program.
+.B \-max <maxconn> or -m <maxconn>
+ The maximum allowed number of connections at one time. The default is 5.
+.TP
+.B \-groups \<groupsfile\> or -g \<groupsfile\>
+.B \-allow \<allowfile\> or -a \<allowfile\>
+.B \-users \<usersfile\> or -u \<usersfile\>
+.B \-xlat \<xlatfile\> or -x \<xlatfile\>
+Use those to override the default locations of the config files.
+.TP
+.B \-logfile \<logfile\> or -l \<logfile\> 
+Use this to override the default location of the log file.
+.TP
+.B \-noecholog
+Disables echoing of log messages to the console window.
+.TP
+.B \-debug
+If this option is used, JamNNTPd will print all sent and received text to the console window. Useful for testing
+.TP
+Options for displaying messages:
+.TP
+.B \-readorigin
+Get address from the Origin line instead of the OADDRESS field of the JAM message header. This option makes JamNNTPd slower, but may be useful if your tosser does not set the OADDRESS field.
+.TP
+.B \-noencode
+JamNNTPd by default MIME-encodes headers with non-ascii characters. If you use this option, JamNNTPd will instead send the headers as plain 8-bit text.
+.TP
+.B \-strictnetmail
+Makes JamNNTPd use strict article counters for netmail messages. Normally JamNNTPd uses article counters that include all messages, not only those that the user is allowed to read. That behaviour is much faster, but may cause your newsreader to indicate the presence of new messages in the netmail area even when there are only messages for other users. Using this option will make JamNNTPd slower, but speed seems to be acceptable for small netmail areas with up to 1000 messages. Users will never be allowed to actually read netmail messages of other users even when this option is not used.
+.TP
+.B \-def_flowed on\/off
+.B \-def_showto on\/off
+Sets the default of the flowed and showto settings (if no default is specified on the commandline, both will be on by default)
+
+flowed: If flowed is on, JamNNTPd will use format=flowed (section 6.5),  otherwise it will wrap long lines to a fixed width.
+
+showto: Since there is no receiver for news messages, JamNNTPd can display the receiver name as a part of the sender name. With this option, this behaviour can be turned on or off.
+
+These can be modified by the user by logging in with parameters (section 4.4)
+   
+.TP
+Options for posting messages:
+.TP
+.B \-nostripre
+JamNNTPd normally strips "Re:" from subject lines of followups. Use this option if you want to retain the "Re:".
+.TP
+.B \-notearline
+JamNNTPd normally puts the information from the X-Newsreader or User-Agent header field in the tearline of posted messages. This option disables this behaviour and leaves the tearline blank.
+.TP
+.B \-noreplyaddr
+JamNNTPd normally adds a REPLYADDR kludge with the e-mail address of the sender in posted messages. Use this option if you don't want REPLYADDR  kludges. See also see section 6.4 in ReadMe.txt.
+.TP
+.B \-notzutc
+JamNNTPd normally writes the timezone into a TZUTC kludge when a message is posted. You can use this option if you don't want to create TZUTC kludges.
+.TP
+.B \-nocancel
+Disallows the cancelling (deleting) of messages by the users. If allowed, users can only cancel messages from one of their "realnames" and only if the message has not yet been sent.
+.TP
+.B \-smartquote
+The quoting style of most newsreaders is different from traditional fidonet software. If you enable this option, JamNNTPd will try to change any quoted lines to fidonet style. This means that it will try to insert the initials of the person you reply to before the '\>' character and also that it will try to compound multiple generations of quotes, i.e. "AA\> BB\>" will be changed into "BB\>\>".
+
+Reformatting quotes in this way means that the user who posts a message will no longer have final say over the final content of the message since it will be changed after he or she sends it to JamNNTPd. Since this in principle is a bad thing even if quoted text will look a lot better after reformatting, this option is turned off by default.
+.TP
+.B \-origin \<origin\>
+Normally JamNNTPd uses the text found in the Organization header line as the Origin line text in posted messages. You can use this switch to override the Organization line and set your own origin for all posted messages.
+.TP
+.B \-guestsuffix \<suffix\>
+If desired, JamNNTPd can add a suffix to posts from unauthenticated users. To activate that feature, specify the suffix here. 
+   
+Example:  \-guestsuffix " [GUEST]".
+.TP
+.B \-echomailjam <echomail.jam>
+If you specify a filename here, JamNNTPd will write a line to this file with the messagebase and message number for each message that is posted.  The file follows the ECHOMAIL.JAM format supported by some tossers.
+.TP
+Options for configuration files:
+.TP
+.B \-config \<configfile\>
+Read options from the specified configuration file. 
+.TP
+.B \-create \<configfile\>
+Create a configuration file with the default settings.
+
 .SH SEE ALSO
-.BR bar (1),
-.BR baz (1).
-.br
-The programs are documented fully by
-.IR "The Rise and Fall of a Fooish Bar" ,
-available via the Info system.
+The ReadMe.txt file and
+.BR makechs (1).
 .SH AUTHOR
 jamnntpd was written by <upstream author>.
 .PP
