@@ -3,7 +3,7 @@ JamNNTPd for Debian
 
    Note the following differences from the source:
 - The file History.txt is installed to the /usr/share/doc/jamnntpd/ directory
-  as as changelog.gz, with a symbolic link to that from History.txt.gz.
+  as changelog.gz, with a symbolic link to that from History.txt.gz.
 
 
  -- Robert James Clay <jame@rocasa.us>  Sat,  4 May 2013 11:01:37 -0500
