@@ -1,9 +1,14 @@
 JamNNTPd for Debian
--------------------
+===================
 
-   Note the following differences from the source:
+
+Changes from the source:
+
 - The file History.txt is installed to the /usr/share/doc/jamnntpd/ directory
   as changelog.gz, with a symbolic link to that from History.txt.gz.
 
+- The file *.chs files use for creating character translations are installed to
+  the /usr/share/jamnntpd/ directory.
 
- -- Robert James Clay <jame@rocasa.us>  Sat,  4 May 2013 11:01:37 -0500
+
+ -- Robert James Clay <jame@rocasa.us>  Sat, 18 May 2013 11:09:01 -0400
