@@ -1,8 +1,10 @@
 Description: Set default paths for operation of program operation.
  Change default log path from /var/spool/log to /var/log.
+ Change default path for .chs files from /home/fido/jamnntpd/xlat to their
+ installation directory /usr/share/jamnntpd/xlat.
 Author: Robert James Clay <jame@rocasa.us>
 Origin: vendor
-Last-Update: 2013-01-25
+Last-Update: 2013-05-18
 
 --- a/src/os_linux.h
 +++ b/src/os_linux.h
@@ -15,3 +17,14 @@ Last-Update: 2013-01-25
  
  #define TRUE 1
  #define FALSE 0
+--- a/examples/jamnntpd.xlat
++++ b/examples/jamnntpd.xlat
+@@ -8,7 +8,7 @@
+ 
+ # This is the directory where the *.chs files will be found
+ 
+-chsdir /home/fido/jamnntpd/xlat
++chsdir /usr/share/jamnntpd/xlat
+ 
+ # Charset translations when reading messages
+ 
