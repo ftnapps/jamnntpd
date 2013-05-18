@@ -1,0 +1,4 @@
+examples/jamnntpd.allow
+examples/jamnntpd.groups
+examples/jamnntpd.users
+examples/jamnntpd.xlat
