@@ -6,8 +6,5 @@
 # This is a POSIX shell fragment
 #
 
-# Set to yes after JamNNTPd has been configured.
-RUN=no
-
 # Additional options that are passed to the Daemon.
-DAEMON_ARGS=" -config /etc/jamnntpd/config"
+DAEMON_ARGS=""
