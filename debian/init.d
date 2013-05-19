@@ -28,14 +28,6 @@ SCRIPTNAME=/etc/init.d/$NAME
 # Read configuration variable file if it is present
 [ -r /etc/default/$NAME ] && . /etc/default/$NAME
 
-# Use this if you want the user to explicitly set 'RUN' in
-# /etc/default/ to enable starting JamNNTPd
-if [ "x$RUN" != "xyes" ] ; then
-    log_failure_msg "$NAME disabled, please adjust the configuration to your needs "
-    log_failure_msg "and then set RUN to 'yes' in /etc/default/$NAME to enable it."
-    exit 1
-fi
-
 # Load the VERBOSE setting and other rcS variables
 . /lib/init/vars.sh
 
