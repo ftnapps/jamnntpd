@@ -1,3 +1,7 @@
+examples/jamnntpd.allow etc
+examples/jamnntpd.groups etc
+examples/jamnntpd.users etc
+examples/jamnntpd.xlat etc
 src/jamnntpd usr/sbin
 src/makechs usr/sbin
 unicode/* usr/share/jamnntpd/unicode
