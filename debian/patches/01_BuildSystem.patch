@@ -1,9 +1,9 @@
 Description: Build System patch for package builds.
- Add updating and usage of CFLAGS to src/Makefile.linux
- Add updateing and usage of LDFLAGS to src/jamlib/Makefile.linux
+ Add updating and usage of CFLAGS, CPPFLAGS, and LDFLAGS to src/Makefile.linux
+ and to src/jamlib/Makefile.linux.
 Author: Robert James Clay <jame@rocasa.us>
 Origin: vendor
-Last-Update: <2013-05-19>
+Last-Update: 2013-05-19
 
 --- a/src/Makefile.linux
 +++ b/src/Makefile.linux
@@ -23,28 +23,28 @@ Last-Update: <2013-05-19>
  makechs$(EXESUFFIX): makechs.c
 -	$(CC) $(PLATFORMDEF) makechs.c -o makechs
 -	$(STRIP) makechs$(EXESUFFIX)
-+	$(CC) $(CFLAGS) $(PLATFORMDEF) makechs.c -o makechs
++	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) $(PLATFORMDEF) makechs.c -o makechs
  
  jamnntpd$(EXESUFFIX): $(OBJS)
 -	$(CC) -o jamnntpd$(EXESUFFIX) $(OBJS) jamlib/jamlib.a -lpthread
 -	$(STRIP) jamnntpd$(EXESUFFIX)
-+	$(CC) $(CFLAGS) -o jamnntpd$(EXESUFFIX) $(OBJS) jamlib/jamlib.a -lpthread
++	$(CC) $(CPPFLAGS) $(CFLAGS) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o jamnntpd$(EXESUFFIX) $(OBJS) jamlib/jamlib.a -lpthread
  
  nntpserv.o : nntpserv.c
 -	$(CC) $(PLATFORMDEF) -c nntpserv.c -o nntpserv.o
-+	$(CC) $(CFLAGS) $(PLATFORMDEF) -c nntpserv.c -o nntpserv.o
++	$(CC) $(CPPFLAGS) $(CFLAGS) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) $(PLATFORMDEF) -c nntpserv.c -o nntpserv.o
  
  os_linux.o : os_linux.c
 -	$(CC) $(PLATFORMDEF) -c os_linux.c -o os_linux.o
-+	$(CC) $(CFLAGS) $(PLATFORMDEF) -c os_linux.c -o os_linux.o
++	$(CC) $(CPPFLAGS) $(CFLAGS) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) $(PLATFORMDEF) -c os_linux.c -o os_linux.o
  
  main.o : main.c
 -	$(CC) $(PLATFORMDEF) -c main.c -o main.o
-+	$(CC) $(CFLAGS) $(PLATFORMDEF) -c main.c -o main.o
++	$(CC) $(CPPFLAGS) $(CFLAGS) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) $(PLATFORMDEF) -c main.c -o main.o
  
  sockio.o : sockio.c
 -	$(CC) $(PLATFORMDEF) -c sockio.c -o sockio.o
-+	$(CC) $(CFLAGS) $(PLATFORMDEF) -c sockio.c -o sockio.o
++	$(CC) $(CPPFLAGS) $(CFLAGS) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) $(PLATFORMDEF) -c sockio.c -o sockio.o
  
  groups.o : groups.c 
 -	$(CC) $(PLATFORMDEF) -c groups.c -o groups.o
@@ -52,23 +52,23 @@ Last-Update: <2013-05-19>
  
  misc.o : misc.c 
 -	$(CC) $(PLATFORMDEF) -c misc.c -o misc.o
-+	$(CC) $(CFLAGS) $(PLATFORMDEF) -c misc.c -o misc.o
++	$(CC) $(CPPFLAGS) $(CFLAGS) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) $(PLATFORMDEF) -c misc.c -o misc.o
  
  xlat.o : xlat.c 
 -	$(CC) $(PLATFORMDEF) -c xlat.c -o xlat.o
-+	$(CC) $(CFLAGS) $(PLATFORMDEF) -c xlat.c -o xlat.o
++	$(CC) $(CPPFLAGS) $(CFLAGS) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) $(PLATFORMDEF) -c xlat.c -o xlat.o
  
  allow.o : allow.c 
 -	$(CC) $(PLATFORMDEF) -c allow.c -o allow.o
-+	$(CC) $(CFLAGS) $(PLATFORMDEF) -c allow.c -o allow.o
++	$(CC) $(CPPFLAGS) $(CFLAGS) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) $(PLATFORMDEF) -c allow.c -o allow.o
  
  login.o : login.c 
 -	$(CC) $(PLATFORMDEF) -c login.c -o login.o
-+	$(CC) $(CFLAGS) $(PLATFORMDEF) -c login.c -o login.o
++	$(CC) $(CPPFLAGS) $(CFLAGS) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) $(PLATFORMDEF) -c login.c -o login.o
  
  mime.o : mime.c
 -	$(CC) $(PLATFORMDEF) -c mime.c -o mime.o
-+	$(CC) $(CFLAGS) $(PLATFORMDEF) -c mime.c -o mime.o
++	$(CC) $(CPPFLAGS) $(CFLAGS) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) $(PLATFORMDEF) -c mime.c -o mime.o
  
  clean :
  	$(RM) *.o
@@ -85,27 +85,27 @@ Last-Update: <2013-05-19>
  
  crc32.o:    crc32.c jam.h
 -	$(CC) -c crc32.c -o crc32.o
-+	$(CC) $(LDFLAGS) -c crc32.c -o crc32.o
++	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -c crc32.c -o crc32.o
  
  mbase.o:    mbase.c jam.h
 -	$(CC) -c mbase.c -o mbase.o
-+	$(CC) $(LDFLAGS) -c mbase.c -o mbase.o
++	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -c mbase.c -o mbase.o
  
  message.o:  message.c jam.h
 -	$(CC) -c message.c -o message.o
-+	$(CC) $(LDFLAGS) -c message.c -o message.o
++	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -c message.c -o message.o
  
  lastread.o: lastread.c jam.h
 -	$(CC) -c lastread.c -o lastread.o
-+	$(CC) $(LDFLAGS) -c lastread.c -o lastread.o
++	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -c lastread.c -o lastread.o
  
  subpack.o:  subpack.c jam.h
 -	$(CC) -c subpack.c -o subpack.o
-+	$(CC) $(LDFLAGS) -c subpack.c -o subpack.o
++	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -c subpack.c -o subpack.o
  
  structrw.o:  structrw.c jam.h
 -	$(CC) -c structrw.c -o structrw.o
-+	$(CC) $(LDFLAGS) -c structrw.c -o structrw.o
++	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -c structrw.c -o structrw.o
  
  clean:
  	$(RM) *.o *.a
