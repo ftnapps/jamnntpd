@@ -1,61 +1,86 @@
 Description: Build System patch for package builds.
- TODO: Put a short summary on the line above and replace this paragraph
- with a longer explanation of this change. Complete the meta-information
- with other relevant fields (see below for details). To make it easier, the
- information below has been extracted from the changelog. Adjust it or drop
- it.
- .
- jamnntpd (1.0-1~1a) UNRELEASED; urgency=low
- .
-   * Initial release. (Closes: #223905)
-   * Test build
+ Add updating and usage of CFLAGS to src/Makefile.linux
+ Add updateing and usage of LDFLAGS to src/jamlib/Makefile.linux
 Author: Robert James Clay <jame@rocasa.us>
-Bug-Debian: http://bugs.debian.org/223905
+Origin: vendor
+Last-Update: <2013-05-19>
 
----
-The information above should follow the Patch Tagging Guidelines, please
-checkout http://dep.debian.net/deps/dep3/ to learn about the format. Here
-are templates for supplementary fields that you might want to add:
-
-Origin: <vendor|upstream|other>, <url of original patch>
-Bug: <url in upstream bugtracker>
-Bug-Debian: http://bugs.debian.org/<bugnumber>
-Bug-Ubuntu: https://launchpad.net/bugs/<bugnumber>
-Forwarded: <no|not-needed|url proving that it has been forwarded>
-Reviewed-By: <name and email of someone who approved the patch>
-Last-Update: <YYYY-MM-DD>
-
---- jamnntpd-1.0.orig/src/Makefile.linux
-+++ jamnntpd-1.0/src/Makefile.linux
-@@ -7,7 +7,6 @@ EXESUFFIX =
+--- a/src/Makefile.linux
++++ b/src/Makefile.linux
+@@ -5,51 +5,48 @@
+ PLATFORMDEF = -DPLATFORM_LINUX
+ EXESUFFIX =
  
- CC = gcc $(DEFS) -Wall
+-CC = gcc $(DEFS) -Wall
++CFLAGS+= -Wall
  RM = rm -f
 -STRIP = strip
  
  OBJS = main.o nntpserv.o os_linux.o sockio.o groups.o misc.o xlat.o allow.o login.o mime.o
  
-@@ -15,11 +14,9 @@ targets: jamnntpd$(EXESUFFIX) makechs$(E
+ targets: jamnntpd$(EXESUFFIX) makechs$(EXESUFFIX)
  
  makechs$(EXESUFFIX): makechs.c
- 	$(CC) $(PLATFORMDEF) makechs.c -o makechs
+-	$(CC) $(PLATFORMDEF) makechs.c -o makechs
 -	$(STRIP) makechs$(EXESUFFIX)
++	$(CC) $(CFLAGS) $(PLATFORMDEF) makechs.c -o makechs
  
  jamnntpd$(EXESUFFIX): $(OBJS)
- 	$(CC) -o jamnntpd$(EXESUFFIX) $(OBJS) jamlib/jamlib.a -lpthread
+-	$(CC) -o jamnntpd$(EXESUFFIX) $(OBJS) jamlib/jamlib.a -lpthread
 -	$(STRIP) jamnntpd$(EXESUFFIX)
++	$(CC) $(CFLAGS) -o jamnntpd$(EXESUFFIX) $(OBJS) jamlib/jamlib.a -lpthread
  
  nntpserv.o : nntpserv.c
- 	$(CC) $(PLATFORMDEF) -c nntpserv.c -o nntpserv.o
---- jamnntpd-1.0.orig/src/jamlib/Makefile.linux
-+++ jamnntpd-1.0/src/jamlib/Makefile.linux
+-	$(CC) $(PLATFORMDEF) -c nntpserv.c -o nntpserv.o
++	$(CC) $(CFLAGS) $(PLATFORMDEF) -c nntpserv.c -o nntpserv.o
+ 
+ os_linux.o : os_linux.c
+-	$(CC) $(PLATFORMDEF) -c os_linux.c -o os_linux.o
++	$(CC) $(CFLAGS) $(PLATFORMDEF) -c os_linux.c -o os_linux.o
+ 
+ main.o : main.c
+-	$(CC) $(PLATFORMDEF) -c main.c -o main.o
++	$(CC) $(CFLAGS) $(PLATFORMDEF) -c main.c -o main.o
+ 
+ sockio.o : sockio.c
+-	$(CC) $(PLATFORMDEF) -c sockio.c -o sockio.o
++	$(CC) $(CFLAGS) $(PLATFORMDEF) -c sockio.c -o sockio.o
+ 
+ groups.o : groups.c 
+-	$(CC) $(PLATFORMDEF) -c groups.c -o groups.o
++	$(CC) $(CGLAGS) $(PLATFORMDEF) -c groups.c -o groups.o
+ 
+ misc.o : misc.c 
+-	$(CC) $(PLATFORMDEF) -c misc.c -o misc.o
++	$(CC) $(CFLAGS) $(PLATFORMDEF) -c misc.c -o misc.o
+ 
+ xlat.o : xlat.c 
+-	$(CC) $(PLATFORMDEF) -c xlat.c -o xlat.o
++	$(CC) $(CFLAGS) $(PLATFORMDEF) -c xlat.c -o xlat.o
+ 
+ allow.o : allow.c 
+-	$(CC) $(PLATFORMDEF) -c allow.c -o allow.o
++	$(CC) $(CFLAGS) $(PLATFORMDEF) -c allow.c -o allow.o
+ 
+ login.o : login.c 
+-	$(CC) $(PLATFORMDEF) -c login.c -o login.o
++	$(CC) $(CFLAGS) $(PLATFORMDEF) -c login.c -o login.o
+ 
+ mime.o : mime.c
+-	$(CC) $(PLATFORMDEF) -c mime.c -o mime.o
++	$(CC) $(CFLAGS) $(PLATFORMDEF) -c mime.c -o mime.o
+ 
+ clean :
+ 	$(RM) *.o
+--- a/src/jamlib/Makefile.linux
++++ b/src/jamlib/Makefile.linux
 @@ -1,4 +1,4 @@
 -CC = gcc -D__LINUX__ -Wall
 +LDFLAGS+= -D__LINUX__ -Wall
  AR = ar -ru
  RM = rm -f
  
-@@ -8,22 +8,22 @@ jamlib.a : $(OBJS)
+@@ -8,22 +8,22 @@
  	$(AR) jamlib.a $(OBJS)
  
  crc32.o:    crc32.c jam.h
