@@ -11,6 +11,7 @@ Vcs-Browser: http://sourceforge.net/p/ftnapps/jamnntpd/code
 Package: jamnntpd
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
+Recommends: crashmail
 Description: NNTP Server allowing newsreaders to access a JAM messagebase
  JamNNTPd is an attempt to merge Fidonet technology with modern Usenet
  newsreaders. Basically, JamNNTPd is NNTP server that allows newsreaders
