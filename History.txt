@@ -1,4 +1,19 @@
 
+Changes in version 1.2
+
+ - Make From addresses into valid RFC 5322 addresses.
+ 
+ - JamNNTPd traditionally has used Fidonet-style addresses in the From
+   header. This breaks RFC 5322 and causes some e-mail software (Alpine,
+   Opera) not to display the sender address properly.
+ 
+   This patch changes the From header to use a valid RFC 5322 syntax,
+   albeit not a valid Internet e-mail address.
+
+Changes in version 1.1
+
+ - Ported to OS/2
+ 
 Changes in version 1.0
 
  - Added support for netmail and local areas (see examples/jamnntpd.groups)

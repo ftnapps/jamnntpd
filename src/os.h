@@ -6,6 +6,10 @@
 #include "os_linux.h"
 #endif
 
+#ifdef PLATFORM_OS2
+#include "os_os2.h"
+#endif
+
 bool os_init(void);
 void os_free(void);
 void os_startserver(void (*srv)(SOCKET sock),SOCKET sock);
