@@ -1,5 +1,5 @@
-jamnntpd (1.2-1~1) UNRELEASED; urgency=low
+jamnntpd (1.2-1) unstable; urgency=low
 
   * Initial release. (Closes: #223905)
 
- -- Robert James Clay <jame@rocasa.us>  Mon, 31 Mar 2014 20:58:53 -0400
+ -- Robert James Clay <jame@rocasa.us>  Sat, 12 Apr 2014 19:47:13 -0400
