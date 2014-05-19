@@ -68,7 +68,7 @@ License: Unicode
  written authorization of the copyright holder.
 
 Files: debian/*
-Copyright: 2013 Robert James Clay <jame@rocasa.us>
+Copyright: 2013-2014 Robert James Clay <jame@rocasa.us>
 License: GPL-2+
  This package is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
