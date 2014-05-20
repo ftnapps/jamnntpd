@@ -4,7 +4,7 @@ Description: Set default paths for operation of program operation.
  installation directory /usr/share/jamnntpd/xlat.
 Author: Robert James Clay <jame@rocasa.us>
 Origin: vendor
-Last-Update: 2013-05-18
+Last-Update: 2014-05-20
 
 --- a/src/os_linux.h
 +++ b/src/os_linux.h
@@ -27,4 +27,15 @@ Last-Update: 2013-05-18
 +chsdir /usr/share/jamnntpd/xlat
  
  # Charset translations when reading messages
+ 
+--- a/unicode/jamnntpd.xlat
++++ b/unicode/jamnntpd.xlat
+@@ -4,7 +4,7 @@
+ # will be posting in or JamNNTPd will not be able to translate the receiver 
+ # name properly. Unfortunately posting in utf-8 is not possible at this time.
+ 
+-chsdir /home/fido/jamnntpd/xlat
++chsdir /home/share/jamnntpd/xlat
+ 
+ defaultread IBMPC
  
