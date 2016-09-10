@@ -1,11 +1,11 @@
 
-                               JamNNTPd 1.2
+                               JamNNTPd 1.3
 
             Copyright 2003-2005, Johan Billing (billing@df.lth.se)
             Copyright 2009, Peter Krefting (peter@softwolves.pp.se)
-            Copyright 2008, 2010, Robert James Clay (jame@rocasa.us)
+            Copyright 2008-2016 Robert James Clay (jame@rocasa.us)
 
-                                2010-07-11
+                                2016-09-10
 
 
 1. Introduction
