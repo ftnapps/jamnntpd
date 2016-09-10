@@ -1378,7 +1378,7 @@ void command_xover(struct var *var)
                stripctrl(mimesubj);
                stripctrl(mimefrom);
 
-               sprintf(xoverres,"%ld\t%s\t%s\t%s\t%s\t%s\t\t" CRLF,
+               sprintf(xoverres,"%ld\t%s\t%s\t%s\t%s\t%s\t\t\t" CRLF,
                      c,mimesubj,mimefrom,datebuf,msgid,reply);
 
                socksendtext(var,xoverres);
