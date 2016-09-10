@@ -373,10 +373,10 @@ void command_list(struct var *var)
             }
 
             if(matchgroup(var->postgroups,g->group))
-               sockprintf(var,"%s %lu %lu y" CRLF,g->tagname,min,max);
+               sockprintf(var,"%s %lu %lu y" CRLF,g->tagname,max,min);
 
             else
-               sockprintf(var,"%s %lu %lu n" CRLF,g->tagname,min,max);
+               sockprintf(var,"%s %lu %lu n" CRLF,g->tagname,max,min);
          }
       }
    }
