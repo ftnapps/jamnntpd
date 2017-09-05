@@ -1,6 +1,6 @@
 Source: jamnntpd
 Section: news
-Priority: extra
+Priority: optional
 Maintainer: Robert James Clay <jame@rocasa.us>
 Build-Depends: debhelper (>= 9.0.0)
 Standards-Version: 4.1.0
