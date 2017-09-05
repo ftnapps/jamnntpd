@@ -3,7 +3,7 @@ Section: news
 Priority: extra
 Maintainer: Robert James Clay <jame@rocasa.us>
 Build-Depends: debhelper (>= 9.0.0)
-Standards-Version: 3.9.5
+Standards-Version: 4.1.0
 Homepage: http://ftnapps.sourceforge.net/jamnntpd.html
 Vcs-Git: https://git.code.sf.net/p/ftnapps/jamnntpd/code
 Vcs-Browser: https://sourceforge.net/p/ftnapps/jamnntpd/code
