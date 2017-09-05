@@ -24,6 +24,6 @@ override_dh_installdocs:
 	dh_installdocs --link-doc=jamnntpd
 
 override_dh_strip:
-	dh_strip --dbgsym-migration=jamnntpd-dbg (<< currentversion~)
+	dh_strip --dbgsym-migration='jamnntpd-dbg (<< currentversion~)'
 
 .PHONY: override_dh_strip
