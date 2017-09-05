@@ -17,14 +17,3 @@ Description: NNTP Server allowing newsreaders to access a JAM messagebase
  newsreaders. Basically, JamNNTPd is NNTP server that allows newsreaders
  to access a JAM messagebase. (If you didn't understand a word of this, you
  may not want to use JamNNTPd anyway).
-
-Package: jamnntpd-dbg
-Architecture: any
-Section: debug
-Depends: jamnntpd (= ${binary:Version}), ${misc:Depends}
-Description: debugging symbols for jamnntpd
- JamNNTPd is an attempt to merge Fidonet technology with modern Usenet
- newsreaders. Basically, JamNNTPd is NNTP server that allows newsreaders
- to access a JAM messagebase.
- .
- This package contains the debugging symbols for jamnntpd.
