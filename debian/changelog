@@ -1,21 +1,22 @@
-jamnntpd (1.3-1) UNRELEASED; urgency=medium
+jamnntpd (1.3-1) unstable; urgency=medium
 
   * New Upstream Release.
   * Changes to debian/control:
-    - Use https URL for the 'Vcs-Git' keyword.
-    - Use https URL for the 'Vcs-Browser' keyword.
-    - Declare compliance with Debian Policy 4.1.0.
-    - Add 'lsb-base (>= 3.0-6)' to the Depends setting.
-    - Remove the 'jamnntpd-dbg' stanza  as no longer necessary.
+      Use https URL for the 'Vcs-Git' keyword.
+      Use https URL for the 'Vcs-Browser' keyword.
+      Declare compliance with Debian Policy 4.1.1.
+      Add 'lsb-base (>= 3.0-6)' to the Depends setting.
+      Remove the 'jamnntpd-dbg' stanza  as no longer necessary.
+      Update the Debhelper Build-Depends version to '>= 9.20151219'.
   * Changes to debian/copyright:
-    - Change 'Copyright-Format 1.0' URL to use HTTPS. 
-    - Update copyright years for the 'debian/*' Files stanza
-    - Add Robert James Clay to the 'Files: *' stanza.
-   * Changes to debian/rules:
-    - Add setting of hardening flags for package build.
-    - Update 'override_dh_strip' target for dbgsym migration.
+      Change 'Copyright-Format 1.0' URL to use HTTPS.
+      Update copyright years for the 'debian/*' Files stanza.
+      Add Robert James Clay to the 'Files: *' stanza.
+  * Changes to debian/rules:
+      Add setting of hardening flags for package build.
+      Update 'override_dh_strip' target for dbgsym migration.
 
- -- Robert James Clay <jame@rocasa.us>  Tue, 10 Oct 2017 12:35:16 -0400
+ -- Robert James Clay <jame@rocasa.us>  Tue, 10 Oct 2017 13:15:22 -0400
 
 jamnntpd (1.2-1) unstable; urgency=low
 
